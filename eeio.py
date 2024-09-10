@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 import os
 import matplotlib.pyplot as plt
-from myutil import calc_matrix_A, get_mat_finEnerCons, get_mat_finCons, get_mat_finConsCO2, get_io_aggregate, plot_agg_sectors
+from util_mat import calc_matrix_A, get_mat_finEnerCons, get_mat_finCons, get_mat_finConsCO2, get_io_aggregate, plot_agg_sectors
 
 
 ## MAIN ##------------------------------------------------------------------------------------    
