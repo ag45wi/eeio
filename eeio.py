@@ -10,16 +10,12 @@ import os
 import matplotlib.pyplot as plt
 from util_mat import calc_matrix_A, get_mat_finEnerCons, get_mat_finCons, get_mat_finConsCO2, get_io_aggregate, plot_agg_sectors
 
-
-## MAIN ##------------------------------------------------------------------------------------    
-
-IS_CALC_MATRIX = 0   #0 read matrix; 1 calculate matrix
-
-if (IS_CALC_MATRIX):
-
+def calc_mat(in_path_io, in_path_fec, in_path_conv, in_path_co2):
+    print ("Inside eeio::calc_mat")
     #Original IO table
     #-----------------------------------------------------------------------------------------
-    file_path = 'data/io_ind_2016.xlsx'
+    #file_path = 'data/io_ind_2016.xlsx'
+    file_path=in_path_io
 
     #pip install pandas openpyxl
     df_io = pd.read_excel(file_path)
@@ -41,7 +37,8 @@ if (IS_CALC_MATRIX):
 
     #Energy use per sector
     #-----------------------------------------------------------------------------------------
-    file_path_FEC = 'data/final_energy_consumption_bytype.xlsx'
+    #file_path_FEC = 'data/final_energy_consumption_bytype.xlsx'
+    file_path_FEC = in_path_fec
     df_fec= pd.read_excel(file_path_FEC)
     #print(df_fec.columns.values)
     X_fec = df_fec[["Coal", "Fuel", "Natural gas", "Electricity"]].values
@@ -50,7 +47,8 @@ if (IS_CALC_MATRIX):
     mat_finEnerCons=get_mat_finEnerCons(mat_A, X_fec_yr)
     #pd.DataFrame(mat_finEnerCons).to_excel("buf/mat_finEnerCons.xlsx")
 
-    file_path_conv = 'data/conversion_factor.xlsx'
+    #file_path_conv = 'data/conversion_factor.xlsx'
+    file_path_conv = in_path_conv
     df_conv= pd.read_excel(file_path_conv)
     #print(df_conv.columns.values)
     X_conv = df_conv[["Multiplier Factor to BOE"]].values
@@ -60,7 +58,8 @@ if (IS_CALC_MATRIX):
     mat_finCons=get_mat_finCons(mat_finEnerCons, X_conv_subset)
     #pd.DataFrame(mat_finCons).to_excel("buf/mat_finCons.xlsx")
 
-    file_path_co2 = 'data/direct_CO2_EF.xlsx'
+    #file_path_co2 = 'data/direct_CO2_EF.xlsx'
+    file_path_co2 = in_path_co2
     df_co2= pd.read_excel(file_path_co2)
     #print(df_co2.columns.values)
     X_co2 = df_co2[["Heat content (HHV)", "Emission Factor"]].values
@@ -146,6 +145,7 @@ if (IS_CALC_MATRIX):
 
 
     file_path_AGG = 'data/aggregated_sectors.xlsx'
+    #file_path_AGG = in_path_agg
     df_agg_label= pd.read_excel(file_path_AGG)
     #print(df_fec.columns.values)
 
@@ -171,14 +171,30 @@ if (IS_CALC_MATRIX):
         df_emissionIntensity.to_excel("buf/result_emissionIntensity.xlsx")
         df_emission.to_excel("buf/result_emission.xlsx")
         df_agg_sectors.to_excel("buf/result_agg_sectors.xlsx")
-else:
-    print ("Reading saved file to dataframe...")
 
-    saved_file_path = "buf/result_agg_sectors.xlsx"
-    df_agg_sectors = pd.read_excel(saved_file_path)
-    df_agg_sectors.set_index('Aggregated sectors', inplace=True)
-#endif
+    return df_agg_sectors    
 
-plot_agg_sectors(df_agg_sectors)
+## MAIN ##------------------------------------------------------------------------------------    
+if __name__ == "__main__":
+    IS_CALC_MATRIX = 0   #0 read matrix; 1 calculate matrix
+
+    if (IS_CALC_MATRIX):
+        file_path_io = 'data/io_ind_2016.xlsx'
+        file_path_FEC = 'data/final_energy_consumption_bytype.xlsx'
+        file_path_conv = 'data/conversion_factor.xlsx'
+        file_path_co2 = 'data/direct_CO2_EF.xlsx'
+        file_path_AGG = 'data/aggregated_sectors.xlsx'
+
+        df_agg_sectors = calc_mat(file_path_io, file_path_FEC, file_path_conv, file_path_co2, file_path_AGG)
+
+    else:
+        print ("Reading saved file to dataframe...")
+
+        saved_file_path = "buf/result_agg_sectors.xlsx"
+        df_agg_sectors = pd.read_excel(saved_file_path)
+        df_agg_sectors.set_index('Aggregated sectors', inplace=True)
+    #endif
+
+    plot_agg_sectors(df_agg_sectors)
 
 
