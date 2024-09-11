@@ -4,9 +4,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 #import plotly.express as px 
 from io import StringIO
+import os
 
 from util_app import get_aggregate_each, plot_agg_each, plot_agg
 from eeio import calc_mat
+
+st.write("chk pwd: ", os.getcwd())
 
 #https://docs.streamlit.io/develop/api-reference/configuration/st.set_page_config
 st.set_page_config(
