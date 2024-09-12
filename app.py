@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 #import plotly.express as px 
 from io import StringIO
 
-from util_app import get_aggregate_each, plot_agg_each, plot_agg, save_toGit
+from util_app import get_aggregate_each, plot_agg_each, plot_agg, save_toGit, save_toGit_xls
 from eeio import calc_mat
 
 #chk pwd: /mount/src/eeio
@@ -91,7 +91,8 @@ with tab2:
             #st.dataframe(fupload)
 
             df1=pd.read_excel(fupload)
-            save_toGit(df1, fupload.name)
+            #save_toGit(df1, fupload)
+            save_toGit_xls(df1, fupload.name)
             fname = fupload.name
             #df1=pd.read_excel(fupload)
             #try:
