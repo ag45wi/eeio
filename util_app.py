@@ -2,6 +2,7 @@ import pandas as pd
 from textwrap import wrap
 import plotly
 import streamlit as st
+import os
 
 def get_aggregate_each ():
     df_emission = pd.read_excel("buf/result_emission.xlsx")
@@ -122,8 +123,7 @@ def save_toGit(in_df, in_fupload):
     # GitHub repository details
     repo = 'ag45wi/eeio'
     branch = 'main'
-    #token = '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'
-    token = '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'
+    token = os.getenv('GITHUB_TOKEN') 
 
     path_name='data/'+in_fupload.name
     #path_name=in_fupload.name
@@ -204,16 +204,18 @@ def save_toGit_xls(in_df, in_fname):
     import requests
     from io import BytesIO
 
-    print("Inside save_toGit")
+    print("Inside save_toGit_xls")
     # GitHub repository details
     repo = 'ag45wi/eeio'
     branch = 'main'
-    #token = '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'
-    token = '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'
-
+    token = os.getenv('GITHUB_TOKEN') 
+        #export GITHUB_TOKEN='your_personal_access_token' -> Unix
+        #set GITHUB_TOKEN='your_personal_access_token' -> in windows, eg use control panel -> env vars
+    
     path_name='data/'+in_fname
     #path_name=in_fupload.name
     print("path_name",path_name)
+    print("token", token)
 
     #this one is ok
     #file_content=in_fupload.getvalue()
