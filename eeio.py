@@ -10,12 +10,13 @@ import os
 import matplotlib.pyplot as plt
 from util_mat import calc_matrix_A, get_mat_finEnerCons, get_mat_finCons, get_mat_finConsCO2, get_io_aggregate, plot_agg_sectors
 
-def calc_mat(in_path_io, in_path_fec, in_path_conv, in_path_co2):
+def calc_mat(in_fname_io, in_fname_fec, in_fname_conv, in_fname_co2):
     print ("Inside eeio::calc_mat")
+    print ("in_fname", in_fname_io, in_fname_fec, in_fname_conv, in_fname_co2)
     #Original IO table
     #-----------------------------------------------------------------------------------------
     #file_path = 'data/io_ind_2016.xlsx'
-    file_path=in_path_io
+    file_path=f"data/{in_fname_io}"
 
     #pip install pandas openpyxl
     df_io = pd.read_excel(file_path)
@@ -38,7 +39,7 @@ def calc_mat(in_path_io, in_path_fec, in_path_conv, in_path_co2):
     #Energy use per sector
     #-----------------------------------------------------------------------------------------
     #file_path_FEC = 'data/final_energy_consumption_bytype.xlsx'
-    file_path_FEC = in_path_fec
+    file_path_FEC = f"data/{in_fname_fec}"
     df_fec= pd.read_excel(file_path_FEC)
     #print(df_fec.columns.values)
     X_fec = df_fec[["Coal", "Fuel", "Natural gas", "Electricity"]].values
@@ -48,7 +49,7 @@ def calc_mat(in_path_io, in_path_fec, in_path_conv, in_path_co2):
     #pd.DataFrame(mat_finEnerCons).to_excel("buf/mat_finEnerCons.xlsx")
 
     #file_path_conv = 'data/conversion_factor.xlsx'
-    file_path_conv = in_path_conv
+    file_path_conv = f"data/{in_fname_conv}"
     df_conv= pd.read_excel(file_path_conv)
     #print(df_conv.columns.values)
     X_conv = df_conv[["Multiplier Factor to BOE"]].values
@@ -59,7 +60,7 @@ def calc_mat(in_path_io, in_path_fec, in_path_conv, in_path_co2):
     #pd.DataFrame(mat_finCons).to_excel("buf/mat_finCons.xlsx")
 
     #file_path_co2 = 'data/direct_CO2_EF.xlsx'
-    file_path_co2 = in_path_co2
+    file_path_co2 = f"data/{in_fname_co2}"
     df_co2= pd.read_excel(file_path_co2)
     #print(df_co2.columns.values)
     X_co2 = df_co2[["Heat content (HHV)", "Emission Factor"]].values

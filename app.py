@@ -4,12 +4,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 #import plotly.express as px 
 from io import StringIO
-import os
 
-from util_app import get_aggregate_each, plot_agg_each, plot_agg
+from util_app import get_aggregate_each, plot_agg_each, plot_agg, save_toGit
 from eeio import calc_mat
 
-#st.write("chk pwd: ", os.getcwd())
+#chk pwd: /mount/src/eeio
 
 #https://docs.streamlit.io/develop/api-reference/configuration/st.set_page_config
 st.set_page_config(
@@ -75,11 +74,10 @@ with tab2:
         f_co2 = st.file_uploader("Choose direct CO2 Emission Factor (xlsx)", type = 'xlsx')
         #f_agg = st.file_uploader("Choose aggregated_sectors (xlsx)", type = 'xlsx')
 
-        DEF_path_io='data/io_ind_2016.xlsx'
-        DEF_path_fec='data/final_energy_consumption_bytype.xlsx'
-        DEF_path_conv='data/conversion_factor.xlsx'
-        DEF_path_co2='data/direct_CO2_EF.xlsx'
-        DEF_path_agg='data/aggregated_sectors.xlsx'
+        DEF_name_io='io_ind_2016.xlsx'
+        DEF_name_fec='final_energy_consumption_bytype.xlsx'
+        DEF_name_conv='conversion_factor.xlsx'
+        DEF_name_co2='direct_CO2_EF.xlsx'
 
 
         #button = st.button('Recompute Matrix', disabled=True)
@@ -92,17 +90,22 @@ with tab2:
             st.write("Uploaded file: ", fupload.name)
             #st.dataframe(fupload)
 
-            fname = "data/"+fupload.name
             df1=pd.read_excel(fupload)
-            try:
-                df1.to_excel(fname, index=False)
-            except (e):
-                print("e", ellipsis)
-            st.dataframe(df1)
+            save_toGit(df1, fupload.name)
+            fname = fupload.name
+            #df1=pd.read_excel(fupload)
+            #try:
+            #    df1.to_excel(fname, index=False)
+            #except (e):
+            #    print("except e:", e)
+            df1_str = df1.astype(str) #just to avoid warning
+            st.dataframe(df1_str)
+            #st.write(",".join(str(x) for x in df1.columns.values))
 
             return fname
         
-        def file_notUploaded(def_path):
+        def file_notUploaded(def_name):
+            def_path=f"data/{def_name}"
             df1 = pd.read_excel(def_path)
             st.write("Existing file:", def_path)
             col=df1.columns.values
@@ -130,29 +133,29 @@ with tab2:
             fname_io = file_uploaded(f_io)
             is_noUpload=False
         else:
-            fname_io=DEF_path_io
-            file_notUploaded(DEF_path_io)
+            fname_io=DEF_name_io
+            file_notUploaded(DEF_name_io)
 
         if f_fec is not None:
             fname_fec = file_uploaded(f_fec)
             is_noUpload=False
         else:
-            fname_fec=DEF_path_fec
-            file_notUploaded(DEF_path_fec)
+            fname_fec=DEF_name_fec
+            file_notUploaded(DEF_name_fec)
 
         if f_conv is not None:
             fname_conv = file_uploaded(f_conv)
             is_noUpload=False
         else:
-            fname_conv=DEF_path_conv
-            file_notUploaded(DEF_path_conv)
+            fname_conv=DEF_name_conv
+            file_notUploaded(DEF_name_conv)
 
         if f_co2 is not None:
             fname_co2 = file_uploaded(f_co2)
             is_noUpload=False
         else:
-            fname_co2=DEF_path_co2
-            file_notUploaded(DEF_path_co2)
+            fname_co2=DEF_name_co2
+            file_notUploaded(DEF_name_co2)
 
         #if f_agg is not None:
         #    fname_agg = file_uploaded(f_agg)
@@ -162,12 +165,13 @@ with tab2:
 
         #print(df1)
         if (not is_noUpload):
-            st.markdown("""---""")
+            #st.markdown("""---""")
             button = st.button('Recompute Matrix')
             #button = st.button('Recompute Matrix', on_click=calc_mat(fname_io, fname_fec, fname_conv, fname_co2, fname_agg))
             #button.on_click(calcmat(f_io, f_fec, f_conv, f_co2, f_agg))
         
             if (button): 
+                
                 calc_mat(fname_io, fname_fec, fname_conv, fname_co2)
                 st.write("EEIO matrices have been recomputed")
             #print("")
