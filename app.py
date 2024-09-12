@@ -10,7 +10,7 @@ from eeio import calc_mat
 
 #chk pwd: /mount/src/eeio
 
-import _init_var
+from _init_var import *
 
 if (st.session_state['IS_LOCAL']):
     print("st.session_state: LOCALHOST")
