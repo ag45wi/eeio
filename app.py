@@ -5,10 +5,17 @@ import matplotlib.pyplot as plt
 #import plotly.express as px 
 from io import StringIO
 
-from util_app import get_aggregate_each, plot_agg_each, plot_agg, save_toGit, save_toGit_xls
+from util_app import plot_agg_each, plot_agg, save_toGit, save_toGit_xls, save_toGit_csv
 from eeio import calc_mat
 
 #chk pwd: /mount/src/eeio
+
+import _init_var
+
+if (st.session_state['IS_LOCAL']):
+    print("st.session_state: LOCALHOST")
+else:
+    print("st.session_state: REMOTE HOST")
 
 #https://docs.streamlit.io/develop/api-reference/configuration/st.set_page_config
 st.set_page_config(
@@ -24,7 +31,7 @@ st.subheader('Environment Sustainability Project')
 # Create tabs
 tab1, tab2, tab3 = st.tabs(["Emission", "Data Center", "About"])
 
-print ("before tab1")
+#print ("before tab1")
 with tab1:
     # SIDEBAR
     #st.sidebar.header("This is my sidebar")
@@ -34,8 +41,8 @@ with tab1:
     with col1:
         st.subheader('Header column 1')
 
-        fpath = "data/list_agg_sectors.xlsx"
-        df_lagg = pd.read_excel(fpath)
+        fpath = "data/list_agg_sectors.csv"
+        df_lagg = pd.read_csv(fpath)
         #print("df_lagg", df_lagg.head(5))
         lst = df_lagg['Aggregated sectors'].tolist()
         lst.insert(0, "--All Sectors--")
@@ -50,34 +57,34 @@ with tab1:
 
         #opt_sector="Energy"
         if (opt_sector != "--All Sectors--"):
-            df_agg_sectors_each = pd.read_excel("buf/result_agg_sectors_each.xlsx")
+            df_agg_sectors_each = pd.read_csv("buf/result_agg_sectors_each.csv")
             df_selected=df_agg_sectors_each[df_agg_sectors_each["Aggregated sectors"] == opt_sector]
             
             plot_agg_each(df_selected, opt_sector)
             
         else:
-            saved_file_path = "buf/result_agg_sectors.xlsx"
-            df_agg_sectors = pd.read_excel(saved_file_path)
+            saved_file_path = "buf/result_agg_sectors.csv"
+            df_agg_sectors = pd.read_csv(saved_file_path)
             df_agg_sectors.set_index('Aggregated sectors', inplace=True)
             #st.dataframe(df_agg_sectors)
             plot_agg(df_agg_sectors)
 
 with tab2:
-    col1, col2 = st.columns([1,1])
+    col1, col2 = st.columns([2,3])
     with col1:
-        f_io = st.file_uploader("Choose IO file (xlsx)", type = 'xlsx')
+        f_io = st.file_uploader("Choose file: IO", type = 'csv')
         st.markdown("""---""")
-        f_fec = st.file_uploader("Choose final energy cnsumption (FEC) file (xlsx)", type = 'xlsx')
+        f_fec = st.file_uploader("Choose file: final energy cnsumption (FEC)", type = 'csv')
         st.markdown("""---""")
-        f_conv = st.file_uploader("Choose conversion_factor file (xlsx)", type = 'xlsx')
+        f_conv = st.file_uploader("Choose file: conversion_factor", type = 'csv')
         st.markdown("""---""")
-        f_co2 = st.file_uploader("Choose direct CO2 Emission Factor (xlsx)", type = 'xlsx')
+        f_co2 = st.file_uploader("Choose file: direct CO2 Emission Factor", type = 'csv')
         #f_agg = st.file_uploader("Choose aggregated_sectors (xlsx)", type = 'xlsx')
 
-        DEF_name_io='io_ind_2016.xlsx'
-        DEF_name_fec='final_energy_consumption_bytype.xlsx'
-        DEF_name_conv='conversion_factor.xlsx'
-        DEF_name_co2='direct_CO2_EF.xlsx'
+        DEF_name_io='io_ind_2016.csv'
+        DEF_name_fec='final_energy_consumption_bytype.csv'
+        DEF_name_conv='conversion_factor.csv'
+        DEF_name_co2='direct_CO2_EF.csv'
 
 
         #button = st.button('Recompute Matrix', disabled=True)
@@ -90,10 +97,20 @@ with tab2:
             st.write("Uploaded file: ", fupload.name)
             #st.dataframe(fupload)
 
-            df1=pd.read_excel(fupload)
-            save_toGit(df1, fupload)
+            #df1=pd.read_excel(fupload)
+            df1=pd.read_csv(fupload)
+            #save_toGit(df1, fupload)
             #save_toGit_xls(df1, fupload.name)
             fname = fupload.name
+
+            if (st.session_state['IS_LOCAL']):
+                print("st.session_state.IS_LOCAL is True")
+                df1.to_csv(f'data/{fname}', index=False)
+            else:
+                print("st.session_state.IS_LOCAL is False -- save to git")
+                save_toGit_csv(df1, fname, "data")
+            
+            
             #df1=pd.read_excel(fupload)
             #try:
             #    df1.to_excel(fname, index=False)
@@ -107,11 +124,11 @@ with tab2:
         
         def file_notUploaded(def_name):
             def_path=f"data/{def_name}"
-            df1 = pd.read_excel(def_path)
+            df1 = pd.read_csv(def_path)
             st.write("Existing file:", def_path)
             col=df1.columns.values
             #st.write(x for x in col[:5])
-            print ("len col", len(col), col.shape)
+            #print ("len col", len(col), col.shape)
             N=10
             if (len(col)<N):
                 N=len(col)

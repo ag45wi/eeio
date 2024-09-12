@@ -8,7 +8,10 @@ import numpy as np
 import pandas as pd
 import os
 import matplotlib.pyplot as plt
-from util_mat import calc_matrix_A, get_mat_finEnerCons, get_mat_finCons, get_mat_finConsCO2, get_io_aggregate, plot_agg_sectors
+import streamlit as st
+
+from util_mat import calc_matrix_A, get_mat_finEnerCons, get_mat_finCons, get_mat_finConsCO2, get_io_aggregate, get_aggregate_each, plot_agg_sectors
+from util_app import save_toGit_csv
 
 def calc_mat(in_fname_io, in_fname_fec, in_fname_conv, in_fname_co2):
     print ("Inside eeio::calc_mat")
@@ -19,7 +22,8 @@ def calc_mat(in_fname_io, in_fname_fec, in_fname_conv, in_fname_co2):
     file_path=f"data/{in_fname_io}"
 
     #pip install pandas openpyxl
-    df_io = pd.read_excel(file_path)
+    #df_io = pd.read_excel(file_path)
+    df_io = pd.read_csv(file_path)
     #print(df_io.head(5))
 
     CNT_SECTOR=185
@@ -40,7 +44,7 @@ def calc_mat(in_fname_io, in_fname_fec, in_fname_conv, in_fname_co2):
     #-----------------------------------------------------------------------------------------
     #file_path_FEC = 'data/final_energy_consumption_bytype.xlsx'
     file_path_FEC = f"data/{in_fname_fec}"
-    df_fec= pd.read_excel(file_path_FEC)
+    df_fec= pd.read_csv(file_path_FEC)
     #print(df_fec.columns.values)
     X_fec = df_fec[["Coal", "Fuel", "Natural gas", "Electricity"]].values
     ROW_Year=6 #row index for year 2016 inside the file
@@ -50,7 +54,7 @@ def calc_mat(in_fname_io, in_fname_fec, in_fname_conv, in_fname_co2):
 
     #file_path_conv = 'data/conversion_factor.xlsx'
     file_path_conv = f"data/{in_fname_conv}"
-    df_conv= pd.read_excel(file_path_conv)
+    df_conv= pd.read_csv(file_path_conv)
     #print(df_conv.columns.values)
     X_conv = df_conv[["Multiplier Factor to BOE"]].values
     #print(X_conv, X_conv.shape)
@@ -61,7 +65,7 @@ def calc_mat(in_fname_io, in_fname_fec, in_fname_conv, in_fname_co2):
 
     #file_path_co2 = 'data/direct_CO2_EF.xlsx'
     file_path_co2 = f"data/{in_fname_co2}"
-    df_co2= pd.read_excel(file_path_co2)
+    df_co2= pd.read_csv(file_path_co2)
     #print(df_co2.columns.values)
     X_co2 = df_co2[["Heat content (HHV)", "Emission Factor"]].values
     #print(X_co2, X_co2.shape)
@@ -145,15 +149,17 @@ def calc_mat(in_fname_io, in_fname_fec, in_fname_conv, in_fname_co2):
     df_emission.columns = ["emissionScope1", "emissionScope2", "emissionScope3", "totalEmission"]
 
 
-    file_path_AGG = 'data/aggregated_sectors.xlsx'
+    file_path_AGG = 'data/aggregated_sectors.csv'
     #file_path_AGG = in_path_agg
-    df_agg_label= pd.read_excel(file_path_AGG)
+    df_agg_label= pd.read_csv(file_path_AGG)
     #print(df_fec.columns.values)
 
     df_agg_sectors=get_io_aggregate(df_io, df_agg_label, totalEmission, scope1_emission_inT, scope2_emission_inT, scope3_emission_inT)
     #print(df_agg_sectors.head(5))
 
-    if (1):
+    df_agg_sectors_each=get_aggregate_each()
+
+    if (0):
         print ("Writing dataframe to excels...")
 
         pd.DataFrame(mat_A).to_excel("buf/mat_A.xlsx")
@@ -173,25 +179,72 @@ def calc_mat(in_fname_io, in_fname_fec, in_fname_conv, in_fname_co2):
         df_emission.to_excel("buf/result_emission.xlsx")
         df_agg_sectors.to_excel("buf/result_agg_sectors.xlsx")
 
+    import _init_var #contains st.session_state['IS_LOCAL']
+
+    if (st.session_state['IS_LOCAL']):
+        print ("Writing dataframe to csv to localhost...")
+
+        pd.DataFrame(mat_A).to_csv("buf/mat_A.csv", index=False)
+        pd.DataFrame(mat_B).to_csv("buf/mat_B.csv", index=False)
+        pd.DataFrame(mat_B_El).to_csv("buf/mat_B_El.csv", index=False)
+        pd.DataFrame(mat_I).to_csv("buf/mat_I.csv", index=False)
+        pd.DataFrame(mat_F).to_csv("buf/mat_F.csv", index=False)
+        pd.DataFrame(mat_BF).to_csv("buf/mat_BF.csv", index=False)
+        pd.DataFrame(mat_IminusA).to_csv("buf/mat_IminusA.csv", index=False)
+        pd.DataFrame(mat_Inv).to_csv("buf/mat_Inv.csv", index=False)
+        pd.DataFrame(mat_InvF).to_csv("buf/mat_InvF.csv", index=False)
+        pd.DataFrame(mat_BInvF).to_csv("buf/mat_BInvF.csv", index=False)
+        pd.DataFrame(mat_AF).to_csv("buf/mat_AF.csv", index=False)
+        pd.DataFrame(mat_BAF).to_csv("buf/mat_BAF.csv", index=False)
+
+        df_emissionIntensity.to_csv("buf/result_emissionIntensity.csv", index=False)
+        df_emission.to_csv("buf/result_emission.csv", index=False)
+        df_agg_sectors.to_csv("buf/result_agg_sectors.csv", index=True)
+
+        df_agg_sectors_each.to_csv("buf/result_agg_sectors_each.csv",index=False)
+    else:
+        print ("Writing dataframe to github...")
+        folder_name="buf"
+        save_toGit_csv(pd.DataFrame(mat_A), "mat_A.csv", folder_name)
+        save_toGit_csv(pd.DataFrame(mat_B), "mat_B.csv", folder_name)
+        save_toGit_csv(pd.DataFrame(mat_B_El), "mat_B_El.csv", folder_name)
+        save_toGit_csv(pd.DataFrame(mat_I), "mat_B_El.csv", folder_name)
+        save_toGit_csv(pd.DataFrame(mat_F), "mat_F.csv", folder_name)
+        save_toGit_csv(pd.DataFrame(mat_BF), "mat_BF.csv", folder_name)
+        save_toGit_csv(pd.DataFrame(mat_IminusA), "mat_IminusA.csv", folder_name)
+        save_toGit_csv(pd.DataFrame(mat_Inv), "mat_Inv.csv", folder_name)
+        save_toGit_csv(pd.DataFrame(mat_InvF), "mat_InvF.csv", folder_name)
+        save_toGit_csv(pd.DataFrame(mat_BInvF), "mat_BInvF.csv", folder_name)
+        save_toGit_csv(pd.DataFrame(mat_AF), "mat_AF.csv", folder_name)
+        save_toGit_csv(pd.DataFrame(mat_BAF), "mat_BAF.csv", folder_name)
+
+        save_toGit_csv(df_emissionIntensity, "result_emissionIntensity.csv", folder_name)
+        save_toGit_csv(df_emission, "result_emission.csv", folder_name)
+        save_toGit_csv(df_agg_sectors, "result_agg_sectors.csv", folder_name)
+
+        save_toGit_csv(df_agg_sectors_each, "result_agg_sectors_each.csv", folder_name)
+
     return df_agg_sectors    
 
 ## MAIN ##------------------------------------------------------------------------------------    
 if __name__ == "__main__":
-    IS_CALC_MATRIX = 0   #0 read matrix; 1 calculate matrix
+    IS_CALC_MATRIX = 1   #0 read matrix; 1 calculate matrix
+    if 'IS_LOCAL' not in st.session_state:
+        st.session_state['IS_LOCAL'] = 1
 
     if (IS_CALC_MATRIX):
-        file_path_io = 'data/io_ind_2016.xlsx'
-        file_path_FEC = 'data/final_energy_consumption_bytype.xlsx'
-        file_path_conv = 'data/conversion_factor.xlsx'
-        file_path_co2 = 'data/direct_CO2_EF.xlsx'
-        file_path_AGG = 'data/aggregated_sectors.xlsx'
+        file_name_io = 'io_ind_2016.csv'
+        file_name_FEC = 'final_energy_consumption_bytype.csv'
+        file_name_conv = 'conversion_factor.csv'
+        file_name_co2 = 'direct_CO2_EF.csv'
+        file_name_AGG = 'aggregated_sectors.csv'
 
-        df_agg_sectors = calc_mat(file_path_io, file_path_FEC, file_path_conv, file_path_co2, file_path_AGG)
+        df_agg_sectors = calc_mat(file_name_io, file_name_FEC, file_name_conv, file_name_co2)
 
     else:
         print ("Reading saved file to dataframe...")
 
-        saved_file_path = "buf/result_agg_sectors.xlsx"
+        saved_file_path = "buf/result_agg_sectors.csv"
         df_agg_sectors = pd.read_excel(saved_file_path)
         df_agg_sectors.set_index('Aggregated sectors', inplace=True)
     #endif

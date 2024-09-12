@@ -29,6 +29,7 @@ def get_mat_finEnerCons(mat_A, X_FEC_yr):
     X1_div=np.divide(X1, divider)
 
     mult=X_FEC_yr.reshape(-1,1)
+    #print("X1_div,mult shape", X1_div.shape, mult.shape, X1_div[:, :5], mult)
     X1_mult=np.multiply(X1_div,mult)
     #print("mult", mult)
 
@@ -111,6 +112,23 @@ def get_io_aggregate(df_io, df_agg_label, totEm, scope1, scope2, scope3):
     #print(df_agg_sectors.head(5))
     
     return df_agg_sectors
+
+def get_aggregate_each ():
+    df_emission = pd.read_csv("buf/result_emission.csv")
+    df_io = pd.read_csv("data/io_ind_2016.csv")
+
+    cnf_sector=df_emission.shape[0]
+    df_sector=df_io[["Sector_CodeName"]]
+    df_sector=df_sector.head(cnf_sector)
+
+    df_emission["Sector_CodeName"]=df_sector.values.ravel()
+
+    file_path_AGG = 'data/aggregated_sectors.csv'
+    df_agg_label= pd.read_csv(file_path_AGG)
+
+    df_emission=pd.merge(df_emission, df_agg_label, on='Sector_CodeName')
+
+    return df_emission
 
 def plot_agg_sectors(df):
     #https://dataviz.unhcr.org/tools/python/python_stacked_bar_chart.html
