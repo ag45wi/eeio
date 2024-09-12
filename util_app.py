@@ -230,6 +230,7 @@ def save_toGit_csv(in_df, in_fname, in_folder, csv_ndx=False):
     repo = 'ag45wi/eeio'
     branch = 'main'
     token = os.getenv('GITHUB_TOKEN') 
+    st.write(token)
     
     path_name=in_folder+'/'+in_fname
     #path_name=in_fupload.name
