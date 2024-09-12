@@ -218,7 +218,7 @@ def save_toGit_xls(in_df, in_fname):
     else:
         print(f'Failed to upload file: {response.json()}')
 
-def save_toGit_csv(in_df, in_fname, in_folder):
+def save_toGit_csv(in_df, in_fname, in_folder, csv_ndx=False):
 
     #https://chatgpt.com/c/66e23381-e364-8005-ba67-3f936287559c
     import base64
@@ -237,8 +237,8 @@ def save_toGit_csv(in_df, in_fname, in_folder):
     #print("token", token)
 
     csv_buffer = StringIO()
-    in_df.to_csv(csv_buffer, index=False)
-    #print("in_df", in_df.head(5))
+    in_df.to_csv(csv_buffer, index=csv_ndx)
+    print("in_df", in_df.head(5))
     csv_data = csv_buffer.getvalue()
 
     encoded_content=base64.b64encode(csv_data.encode()).decode()

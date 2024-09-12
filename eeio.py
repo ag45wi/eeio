@@ -220,7 +220,7 @@ def calc_mat(in_fname_io, in_fname_fec, in_fname_conv, in_fname_co2):
 
         save_toGit_csv(df_emissionIntensity, "result_emissionIntensity.csv", folder_name)
         save_toGit_csv(df_emission, "result_emission.csv", folder_name)
-        save_toGit_csv(df_agg_sectors, "result_agg_sectors.csv", folder_name)
+        save_toGit_csv(df_agg_sectors, "result_agg_sectors.csv", folder_name, True)
 
         save_toGit_csv(df_agg_sectors_each, "result_agg_sectors_each.csv", folder_name)
 

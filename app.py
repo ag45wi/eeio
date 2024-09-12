@@ -74,7 +74,7 @@ with tab2:
     with col1:
         f_io = st.file_uploader("Choose file: IO", type = 'csv')
         st.markdown("""---""")
-        f_fec = st.file_uploader("Choose file: final energy cnsumption (FEC)", type = 'csv')
+        f_fec = st.file_uploader("Choose file: final energy consumption (FEC)", type = 'csv')
         st.markdown("""---""")
         f_conv = st.file_uploader("Choose file: conversion_factor", type = 'csv')
         st.markdown("""---""")
