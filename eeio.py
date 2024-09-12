@@ -179,7 +179,7 @@ def calc_mat(in_fname_io, in_fname_fec, in_fname_conv, in_fname_co2):
         df_emission.to_excel("buf/result_emission.xlsx")
         df_agg_sectors.to_excel("buf/result_agg_sectors.xlsx")
 
-    from _init_var import * ##contains st.session_state['IS_LOCAL']
+    #from _init_var import * ##contains st.session_state['IS_LOCAL']
 
     if (st.session_state['IS_LOCAL']):
         print ("Writing dataframe to csv to localhost...")
