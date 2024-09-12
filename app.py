@@ -91,8 +91,8 @@ with tab2:
             #st.dataframe(fupload)
 
             df1=pd.read_excel(fupload)
-            #save_toGit(df1, fupload)
-            save_toGit_xls(df1, fupload.name)
+            save_toGit(df1, fupload)
+            #save_toGit_xls(df1, fupload.name)
             fname = fupload.name
             #df1=pd.read_excel(fupload)
             #try:
