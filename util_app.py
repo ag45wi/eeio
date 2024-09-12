@@ -94,7 +94,7 @@ def plot_agg(df):
     st.plotly_chart(fig)
 
 
-def save_toGit(in_df, in_fname):
+def save_toGit(in_df, in_fupload):
 
     def get_file_sha(file_name, GITHUB_REPO, GITHUB_TOKEN, GITHUB_BRANCH):
         url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{file_name}?ref={GITHUB_BRANCH}"
@@ -122,7 +122,94 @@ def save_toGit(in_df, in_fname):
     # GitHub repository details
     repo = 'ag45wi/eeio'
     branch = 'main'
-    token = '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'
+    #token = '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'
+    token = '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'
+
+    path_name='data/'+in_fupload.name
+    #path_name=in_fupload.name
+    print("path_name",path_name)
+
+    #this one is ok
+    file_content=in_fupload.getvalue()
+    encoded_content=base64.b64encode(file_content).decode()
+
+    #in_df.to_excel(path_name, index=False)
+
+    # Read the Excel file as binary and encode in base64
+    #with open(path_name, 'rb') as file:
+    #    encoded_content = base64.b64encode(file.read()).decode()
+
+    # GitHub API URL to upload the file
+    url = f'https://api.github.com/repos/{repo}/contents/{path_name}'
+    #url = f'https://api.github.com/repos/{repo}/contents/test_io.xlsx'
+
+    from datetime import datetime
+    now = datetime.now()
+    curr_date_time = now.strftime("%Y-%m-%d_%H.%M.%S")
+    # Data to send to the API
+    data = {
+        'message': f'Update {curr_date_time}',
+        'content': encoded_content,
+        'branch': branch
+    }
+
+    # Headers including your GitHub token
+    headers = {
+        'Authorization': f'token {token}',
+        'Content-Type': 'application/json'
+    }
+
+    file_sha = get_file_sha(path_name, repo, token, branch)
+    if file_sha:
+        print("sha: ", file_sha)
+        data["sha"] = file_sha
+
+    # Make the PUT request to upload the file
+    response = requests.put(url, json=data, headers=headers)
+
+    if response.status_code in [200, 201]:
+        print('File successfully uploaded!')
+    else:
+        print(f'Failed to upload file: {response.json()}')
+
+
+def save_toGit_xls(in_df, in_fname):
+
+    def get_file_sha(file_name, GITHUB_REPO, GITHUB_TOKEN, GITHUB_BRANCH):
+        url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{file_name}?ref={GITHUB_BRANCH}"
+        headers = {
+            "Authorization": f"token {GITHUB_TOKEN}",
+            "Content-Type": "application/json"
+        }
+        response = requests.get(url, headers=headers)
+        
+        if response.status_code == 200:
+            file_data = response.json()
+            return file_data['sha']  # Return the file's SHA
+        elif response.status_code == 404:
+            return None  # File doesn't exist
+        else:
+            st.error(f"Error fetching file info: {response.json()}")
+            return None
+
+    # Function to convert DataFrame to an in-memory Excel file
+    def dataframe_to_excel(df):
+        output = BytesIO()
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            df.to_excel(writer, index=False)
+        return output.getvalue()  # Get the Excel data in bytes
+
+    #https://chatgpt.com/c/66e23381-e364-8005-ba67-3f936287559c
+    import base64
+    import requests
+    from io import BytesIO
+
+    print("Inside save_toGit")
+    # GitHub repository details
+    repo = 'ag45wi/eeio'
+    branch = 'main'
+    #token = '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'
+    token = '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'
 
     path_name='data/'+in_fname
     #path_name=in_fupload.name
@@ -132,12 +219,13 @@ def save_toGit(in_df, in_fname):
     #file_content=in_fupload.getvalue()
     #encoded_content=base64.b64encode(file_content).decode()
 
-    excel_data=in_df.to_excel(path_name, index=False)
-    #encoded_content=base64.b64encode(excel_data).decode()
+    file_content = dataframe_to_excel(in_df)
+    encoded_content=base64.b64encode(file_content).decode()
+    #in_df.to_excel(path_name, index=False)
 
     # Read the Excel file as binary and encode in base64
-    with open(path_name, 'rb') as file:
-        encoded_content = base64.b64encode(file.read()).decode()
+    #with open(path_name, 'rb') as file:
+    #    encoded_content = base64.b64encode(file.read()).decode()
 
     # GitHub API URL to upload the file
     url = f'https://api.github.com/repos/{repo}/contents/{path_name}'
