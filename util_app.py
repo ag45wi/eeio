@@ -230,52 +230,68 @@ def save_toGit_csv(in_df, in_fname, in_folder, csv_ndx=False):
     repo = 'ag45wi/eeio'
     branch = 'main'
     token = os.getenv('GITHUB_TOKEN') 
-    st.write(token)
     
-    path_name=in_folder+'/'+in_fname
-    #path_name=in_fupload.name
-    print("path_name",path_name)
-    #print("token", token)
+    #token=None
+    if (token is None):
+        st.write("Token is None")
+        url = "https://drive.google.com/drive/folders/1GxgB9CpaTfSG7uuHjRPmcx_YtccoDTh5?usp=sharing"
+        #st.markdown("Please check this link for available token (%s)" % url)
+        #st.write(f"<a href={url}>Please check this link for available token</a>")
+        st.markdown(f"[Click here to view available token]({url})")
+        input_token = st.text_input("Enter the GitHub Token")
+        if st.button("Submit"):
+            if not input_token:
+                st.error("GitHub token is required!")
+            else:
+                st.success("Token received. Proceeding...")
+                print("received token:", input_token)
+                token=input_token
 
-    csv_buffer = StringIO()
-    in_df.to_csv(csv_buffer, index=csv_ndx)
-    print("in_df", in_df.head(5))
-    csv_data = csv_buffer.getvalue()
+    if (token is not None):
+        path_name=in_folder+'/'+in_fname
+        #path_name=in_fupload.name
+        print("path_name",path_name)
+        #print("token", token)
 
-    encoded_content=base64.b64encode(csv_data.encode()).decode()
+        csv_buffer = StringIO()
+        in_df.to_csv(csv_buffer, index=csv_ndx)
+        print("in_df", in_df.head(5))
+        csv_data = csv_buffer.getvalue()
 
-    # GitHub API URL to upload the file
-    url = f'https://api.github.com/repos/{repo}/contents/{path_name}'
-    #url = f'https://api.github.com/repos/{repo}/contents/test_io.xlsx'
+        encoded_content=base64.b64encode(csv_data.encode()).decode()
 
-    from datetime import datetime
-    now = datetime.now()
-    curr_date_time = now.strftime("%Y-%m-%d_%H.%M.%S")
-    # Data to send to the API
-    data = {
-        'message': f'Update {curr_date_time}',
-        'content': encoded_content,
-        'branch': branch
-    }
+        # GitHub API URL to upload the file
+        url = f'https://api.github.com/repos/{repo}/contents/{path_name}'
+        #url = f'https://api.github.com/repos/{repo}/contents/test_io.xlsx'
 
-    # Headers including your GitHub token
-    headers = {
-        'Authorization': f'token {token}',
-        'Content-Type': 'application/json'
-    }
+        from datetime import datetime
+        now = datetime.now()
+        curr_date_time = now.strftime("%Y-%m-%d_%H.%M.%S")
+        # Data to send to the API
+        data = {
+            'message': f'Update {curr_date_time}',
+            'content': encoded_content,
+            'branch': branch
+        }
 
-    file_sha = get_file_sha(path_name, repo, token, branch)
-    if file_sha:
-        print("sha: ", file_sha)
-        data["sha"] = file_sha
+        # Headers including your GitHub token
+        headers = {
+            'Authorization': f'token {token}',
+            'Content-Type': 'application/json'
+        }
 
-    # Make the PUT request to upload the file
-    response = requests.put(url, json=data, headers=headers)
+        file_sha = get_file_sha(path_name, repo, token, branch)
+        if file_sha:
+            print("sha: ", file_sha)
+            data["sha"] = file_sha
 
-    if response.status_code in [200, 201]:
-        print('File successfully uploaded!')
-    else:
-        print(f'Failed to upload file: {response.json()}')
+        # Make the PUT request to upload the file
+        response = requests.put(url, json=data, headers=headers)
+
+        if response.status_code in [200, 201]:
+            print('File successfully uploaded!')
+        else:
+            print(f'Failed to upload file: {response.json()}')
 
 
 #MAIN, executed if run independently------------------------------------------------------
