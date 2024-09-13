@@ -230,7 +230,7 @@ def save_toGit_csv(in_df, in_fname, in_folder, csv_ndx=False):
     repo = 'ag45wi/eeio'
     branch = 'main'
     token = os.getenv('GITHUB_TOKEN') 
-    token = None
+    #token = None
     if (token is None): 
         try:
             token=st.session_state['GIT_TOKEN']
