@@ -230,7 +230,13 @@ def save_toGit_csv(in_df, in_fname, in_folder, csv_ndx=False):
     repo = 'ag45wi/eeio'
     branch = 'main'
     token = os.getenv('GITHUB_TOKEN') 
-    
+    token = None
+    if (token is None): 
+        try:
+            token=st.session_state['GIT_TOKEN']
+            print ("token from sesstion_state", token)
+        except:
+            print ("token from sesstion_state is not initialized yet") 
     #token=None
     if (token is None):
         st.write("Token is None")
@@ -246,6 +252,7 @@ def save_toGit_csv(in_df, in_fname, in_folder, csv_ndx=False):
                 st.success("Token received. Proceeding...")
                 print("received token:", input_token)
                 token=input_token
+                st.session_state['GIT_TOKEN']=token
 
     if (token is not None):
         path_name=in_folder+'/'+in_fname
