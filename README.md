@@ -1,4 +1,4 @@
-Web interface can be accessed via: https://inovasitiadahenti/eeio
+Web interface can be accessed via: https://inovasitiadahenti.com/eeio
 
 Python version: 3.10.11
 requirement file for dependecies: reqs.txt
