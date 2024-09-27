@@ -4,6 +4,6 @@
 # ignore ALL files in ANY directory named temp
 .venv/
 __pycache__/
-_temp/ 
+_tmp/ 
 _reqs_det.txt
 _note.txt
