@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title>EEIO-Indonesia</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='style/header.css') }}">
+<link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='style/vert_navbar.css') }}">
+<link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='style/tbl_custom.css') }}">
+</head>
+<body>
+
+{% include 'header.html' %}
+
+
+<div class="row">
+  <div class="side">
+    <h3>Jenis Input Data</h3>
+    <ul>
+      <li><a href="#io">I/O Table</a></li>
+      <li><a href="#fec">Final Energy Consumption</a></li>
+      <li><a href="#conv">Conversion Factor</a></li>
+      <li><a href="#co2">CO2 Emission Factor</a></li>
+    </ul>
+
+  </div>
+  <div class="main">
+    <div id="io">
+      <h3 >I/O Table</h3>
+      {% if df_io.size !=0 %} 
+        <div style="overflow:scroll; height:300px; width:800px">
+          <div class="customers">
+            {% for table in df_io %}
+                    {{ table|safe }}
+            {% endfor %}
+          </div>
+        </div>
+      {% endif %}
+    </div>
+    
+    <h3 id="fec">Final Energy Consumption</h3>
+    {% if df_fec.size !=0 %} 
+    <div style="overflow:scroll; height:300px; width:800px">
+      <div class="customers">
+        {% for table in df_fec %}
+                {{ table|safe }}
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <h3 id="conv">Conversion Factor</h3>
+    {% if df_conv.size !=0 %} 
+    <div style="overflow:scroll; height:300px; width:800px">
+      <div class="customers">
+        {% for table in df_conv%}
+                {{ table|safe }}
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <h3 id="co2">CO2 Emission Factor</h3>
+    {% if df_co2.size !=0 %} 
+    <div style="overflow:scroll; height:300px; width:800px">
+    <div class="customers">
+        {% for table in df_co2 %}
+                {{ table|safe }}
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+    
+  </div>
+</div>
+
+<div class="footer">
+  <h3>Footer</h3>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title>EEIO-Indonesia</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='style/header.css') }}">
+<link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='style/login.css') }}">
+</head>
+<body>
+
+{% include 'header.html' %}
+
+<div class="body_user">
+  <div class="container">
+
+    {% if mode=="prompt" %}
+    <h2>User Login</h2>
+    <form action="{{ url_for('nav_login',mode='prompt') }}" method="post">
+      {% if message is defined and message %}
+        <div class="alert alert-warning"> <strong> {{ message }} </strong></div>
+        <br>
+        {% endif %}
+
+      <label>User ID: </label>
+      <input type="text" id="userid" name="userid" placeholder="Enter user ID" >
+      <label>Password: </label>
+      <input type="password" id="password" name="password" placeholder="Enter password">
+      <button type="submit">Login</button>
+  
+      <div class="signup">
+          <span class="signup">Don't have an account?
+            <br><a href="{{url_for('nav_login',mode='register')}}"> Register here</a>
+          </span>
+      </div>
+    </form>
+
+    {% elif mode=="register" %}
+    <h2>Admin Registration </h2>
+    <form action="{{ url_for('nav_login', mode='register') }}" method="post">
+      {% if message is defined and message %}
+        <div class="alert alert-warning"> <strong> {{ message }} </strong></div>
+      {% endif %}
+      <br>
+      <label>User ID:</label>
+        <input type="text" id="userid" name="userid" placeholder="Enter user ID" >
+          <label>Name:</label>
+      <input type="text" id="name" name="name" placeholder="Enter name" >
+          <label>Email:</label>
+      <input type="email" id="email" name="email" placeholder="Enter email" >
+          <label>Password:</label>
+      <input type="password" id="password" name="password" placeholder="Enter password" >
+          <div class="wrap">
+            <button type="submit">Register</button>
+          </div>
+      <div class="signup">
+          <span class="signup">Already have an account?
+            <br><a href="{{url_for('nav_login', mode='prompt')}}"> Login here</a>
+          </span>
+        </div>
+    </form>
+  
+    {% endif %}
+  </div>
+</div>
+
+<div class="footer">
+  <h3>Footer</h3>
+</div>
+
+</body>
+</html>

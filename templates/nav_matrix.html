@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title>EEIO-Indonesia</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='style/header.css') }}">
+<link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='style/drop_zone.css') }}">
+<link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='style/tbl_custom.css') }}">
+
+</head>
+<body>
+
+{% include 'header.html' %}
+
+
+<div class="row">
+  <div class="side">
+    <h3>Input Files</h3>
+
+    <!-- Fallback file input for browsers without drag and drop -->
+    <form action="{{ url_for('upload') }}" method="POST" enctype="multipart/form-data">
+        <p>File 1 (IO): <br><input type="file" id="file_input1" name="f_io" accept=".csv"></p>
+        <p>File 2 (final energy consumption): <br><input type="file" id="file_input2" name="f_fec" accept=".csv"></p>
+        <p>File 3 (conversion factor): <br><input type="file" id="file_input3" name="f_conv" accept=".csv"></p>
+        <p>File 4 (direct CO2 emission factor): <br><input type="file" id="file_input4" name="f_co2" accept=".csv"></p>
+        <input type="submit" value="Upload">
+    </form>
+
+  </div>
+  <div class="main">
+    <h3>Matrix Calculation</h3>
+
+    {% if labeled_files.size !=0 %} 
+      <h4>Uploaded files:</h4>
+      {% for data in labeled_files %}
+        {% if data[1] != "" %}
+          {{ data[1] }}<br>
+        {% endif %}
+      {% endfor %}
+    {% endif %}
+    <p></p>
+    {% if labeled_files.size !=0 %} 
+      <form action="{{ url_for('calc_matrix') }}" method="POST" enctype="multipart/form-data">
+        {% for data in labeled_files %}
+        <input type='hidden' name={{data[0]}} value={{data[1]}} >
+        {% endfor %}
+        <input type="submit" value="calculate Matrix">
+      </form>
+    {% endif %}
+
+    {% if df_tables.size !=0 %} 
+      <h4>Matrix has been (re)-computed</h4>
+      <div class="customers">
+        {% for table in df_tables %}
+                {{ table|safe }}
+        {% endfor %}
+      </div>
+    {% endif %}
+
+  </div>
+</div>
+
+<div class="footer">
+  <h3>Footer</h3>
+</div>
+
+</body>
+</html>

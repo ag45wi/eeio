@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title>EEIO-Indonesia</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='style/header.css') }}">
+
+</head>
+<body>
+
+{% include 'header.html' %}
+
+
+<div class="row">
+  <div class="side">
+    <h3>Kategori Sektor</h3>
+
+    <form method="POST" action="{{ url_for('submit_opt_agg') }}">
+      <label for="dropdown">Select category of IO sectors:</label>
+      <select name="dropdown" id="dropdown">
+        {% for item in data_list %}
+          {% if item==selected_opt_agg %}
+            <option value="{{ item }}" selected>{{ item }}</option>
+          {% else %}
+            <option value="{{ item }}">{{ item }}</option>
+          {% endif %}
+        {% endfor %}
+      </select>
+      <button type="submit">Submit</button>
+    </form>
+
+  </div>
+  <div class="main">
+    <h3>Emisi Per Sektor</h3>
+    <!--
+    <h5>Selected option: {{selected_opt_agg}}</h5>
+    -->
+    <img src="{{ url_for('plot_png', in_agg=selected_opt_agg) }}" alt="Stacked Bar Chart">
+    
+  </div>
+</div>
+
+<div class="footer">
+  <h3>Footer</h3>
+</div>
+
+</body>
+</html>

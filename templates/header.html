@@ -1,0 +1,20 @@
+    <div class="header">
+      <h1>EEIO-Indonesia</h1>
+      <h3>Indonesia Carbon Footprint Calculator</h3>
+    </div>
+    
+    <div class="navbar">
+      <a href="{{ url_for('home') }}" class="active">Home</a>
+      <a href="{{ url_for('nav_input') }}">Data for Computation</a>
+      {% if session['loggedin'] %}
+        <a href="{{ url_for('nav_matrix') }}">Matrix</a>
+      {% endif %}
+
+      {% if not session['loggedin'] %}
+        <a href="{{ url_for('nav_login', mode='prompt') }}" class="right">Login</a>
+      {% else %}
+        <a href="{{ url_for('nav_login', mode='logout') }}" class="right">Logout ({{session['userid']}})</a>
+      {% endif %}
+
+
+    </div>
