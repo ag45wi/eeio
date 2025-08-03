@@ -1,6 +1,12 @@
 import os
 import pandas as pd
 import numpy as np
+import sys
+from dotenv import load_dotenv
+from flask import Flask
+
+from util_db import tbl_to_df, db_init, execute_query
+
 
 def copy_file_todata(in_fname):
     import shutil
@@ -57,7 +63,12 @@ def get_mat_finEnerCons(mat_A, X_FEC_yr):
     return X1_mult
 
 def get_mat_finCons(finEnerCons, convFactor):
+    #print("inside get_mat_finCons")
+
     div1=convFactor.reshape(-1,1)
+    #print("finEnerCons, convFactor, div1 shape", finEnerCons.shape, convFactor.shape, div1.shape)
+    #print("div1", div1)
+
     X1_div=np.divide(finEnerCons,div1)
     X1_div=np.multiply(X1_div,1000)
     #print("div1", div1)
@@ -68,8 +79,9 @@ def get_mat_finCons(finEnerCons, convFactor):
     return X1_div
 
 def get_mat_finConsCO2(finCons, CO2_EF):
-
-    #print("CO2_EF", CO2_EF, CO2_EF.shape)
+    #matrix CO2_EF must be 4 rows, for coal, fuel, nat gas, electricity; in that order
+    print("inside get_mat_finConsCO2")
+    print("finCons, CO2_EF", finCons.shape, CO2_EF.shape)
 
     #coal
     #=(B7*1000)*'Direct CO2 emission factor'!$B$9*'Direct CO2 emission factor'!$C$9
@@ -84,7 +96,9 @@ def get_mat_finConsCO2(finCons, CO2_EF):
 
     #nat gas
     #=B9*26.8*('Direct CO2 emission factor'!$B$14/1000)*'Direct CO2 emission factor'!$C$14
-    row3=np.multiply(finCons[2,:],26.8)
+    #print("CHK CO2_EF", CO2_EF[2,2])
+    #sys.exit()
+    row3=np.multiply(finCons[2,:],CO2_EF[2,2])
     row3=np.multiply(row3,CO2_EF[2,0])
     row3=np.divide(row3,1000)
     row3=np.multiply(row3,CO2_EF[2,1])
@@ -97,7 +111,6 @@ def get_mat_finConsCO2(finCons, CO2_EF):
     mat_co2=np.vstack((row1,row2,row3,row4))
 
     #print("shape", mat_co2.shape)
-
     #print ("mat_co2", mat_co2[:,:5])
 
     return mat_co2
@@ -108,10 +121,11 @@ def get_io_aggregate(df_io, df_agg_label, totEm, scope1, scope2, scope3):
     #https://www.geeksforgeeks.org/adding-new-column-to-existing-dataframe-in-pandas/
 
     cnf_sector=df_agg_label.shape[0]
-    #print("cnf_sector", cnf_sector)
+    print("cnf_sector", cnf_sector)
 
     #df_agg_io=df_io[["Sector_Code",	"Sector_Name", "Sector_CodeName"]]
-    df_agg_io=df_io[["Sector_CodeName"]]
+    df_agg_io=df_io[["Sector_Code"]]
+    #df_agg_io=df_io[["Sector_Code"]]
     df_agg_io=df_agg_io.head(cnf_sector) #get the first 185 sectors
 
     df_agg_io["total_Emission"] = totEm
@@ -119,71 +133,222 @@ def get_io_aggregate(df_io, df_agg_label, totEm, scope1, scope2, scope3):
     df_agg_io["scope2_Emission"] = scope2
     df_agg_io["scope3_Emission"] = scope3
 
-    df_agg_io=pd.merge(df_agg_io, df_agg_label, on='Sector_CodeName')
-    #print(df_agg_io.head(5))
+    print("column df_agg_io, df_agg_label", df_agg_io.columns, df_agg_label.columns)
+    df_agg_io=pd.merge(df_agg_io, df_agg_label, on='Sector_Code')
+    print(df_agg_io.head(5))
 
-    df_agg_io=df_agg_io.drop(columns=['Sector_CodeName', 'Sector_Number'])
-    #print(df_agg_io.head(5))
+    #df_agg_io=df_agg_io.drop(columns=['Sector_CodeName', 'Sector_Number'])
+    df_agg_io=df_agg_io.drop(columns=['Sector_Code', 'Sector_Name'])
+    print(df_agg_io.head(5))
 
     #df1 = df_agg_io.groupby("Aggregated sectors")["total_Emission", "scope1_Emission", "scope2_Emission", "scope3_Emission"].sum()
     df_agg_sectors= df_agg_io.groupby("Aggregated sectors").sum()
-    #print(df_agg_sectors.head(5))
+    print(df_agg_sectors.head(5))
     
     return df_agg_sectors
 
-def get_aggregate_each ():
-    cwd=os.getcwd()
-    df_emission = pd.read_csv(f"{cwd}/static/buf/result_emission.csv")
-    df_io = pd.read_csv(f"{cwd}/static/data/io_ind_2016.csv")
+def get_aggregate_each (df_io, df_emission, df_agg_label):
+    #cwd=os.getcwd()
+    #df_emission = pd.read_csv(f"{cwd}/static/buf/result_emission.csv")
+    #df_io = pd.read_csv(f"{cwd}/static/data/io_ind_2016.csv")
 
     cnf_sector=df_emission.shape[0]
-    df_sector=df_io[["Sector_CodeName"]]
+    df_sector=df_io[["Sector_Code"]]
     df_sector=df_sector.head(cnf_sector)
 
-    df_emission["Sector_CodeName"]=df_sector.values.ravel()
+    df_emission["Sector_Code"]=df_sector.values.ravel()
 
-    file_path_AGG = f'{os.getcwd()}/static/data/aggregated_sectors.csv'
-    df_agg_label= pd.read_csv(file_path_AGG)
+    #file_path_AGG = f'{os.getcwd()}/static/data/aggregated_sectors.csv'
+    #file_path_AGG = f'{os.getcwd()}/static/data/agg_sectors_det.csv'
+    #df_agg_label= pd.read_csv(file_path_AGG)
 
-    df_emission=pd.merge(df_emission, df_agg_label, on='Sector_CodeName')
+    #df_emission=pd.merge(df_emission, df_agg_label, on='Sector_CodeName')
+    df_emission=pd.merge(df_emission, df_agg_label, on='Sector_Code')
 
     return df_emission
 
+def write_to_db(db, year, df_emissionIntensity, df_emission, df_agg_sectors, df_agg_sectors_each):
+    q_str = "SELECT sector_agg, sector_code, sector_name FROM sector_lst WHERE sector_label='DET'"
+    df_sector = tbl_to_df(db, q_str)
+    print("df columns", df_sector.columns)
+    print("df_sector", df_sector.head(5))
+    cnt_sector=df_sector.shape[0]
+    sector_agg=df_sector["sector_agg"].values.tolist()
+    sector_code=df_sector["sector_code"].values.tolist()
+    sector_name=df_sector["sector_name"].values.tolist()
+    year_lst=[year]*cnt_sector
 
-def calc_mat(in_fname_io, in_fname_fec, in_fname_conv, in_fname_co2):
+    #emissionIntensity==========================================================================
+    #df_emissionIntensity.to_sql('emissionIntensity', con=db, if_exists='replace', index=False)
+
+    #https://gemini.google.com/app/30bfc0bb5e9c2500
+    #on float data types
+
+    print(f"df_emissionIntensity.shape {df_emissionIntensity.shape}, cnt_sector {cnt_sector}")
+    if (df_emissionIntensity.shape[0] != cnt_sector):
+        print("Inequal length of df_emissionIntensity and sector_lst")
+        sys.exit()
+    
+    df_emissionIntensity["year"]=year_lst
+    df_emissionIntensity["sector_agg"]=sector_agg
+    df_emissionIntensity["sector_code"]=sector_code
+    df_emissionIntensity["sector_name"]=sector_name
+
+    df_emissionIntensity.to_csv(f"{os.getcwd()}/static/buf/{year}/tmp/df_emissionIntensity_{year}.csv", index=False)
+
+    data_to_upsert = list(df_emissionIntensity[['year', 'sector_agg', 'sector_code', 'sector_name', 'emissionIntensityScope1', 'emissionIntensityScope2', 'emissionIntensityScope3', 'totalEmissionIntensity']].itertuples(index=False, name=None))
+
+    sql_str = """
+        INSERT INTO result_emission_intensity (year, sector_agg, sector_code, sector_name, emissionIntensityScope1, emissionIntensityScope2, emissionIntensityScope3, totalEmissionIntensity)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        ON DUPLICATE KEY UPDATE
+            emissionIntensityScope1 = VALUES(emissionIntensityScope1),
+            emissionIntensityScope2 = VALUES(emissionIntensityScope2),
+            emissionIntensityScope3 = VALUES(emissionIntensityScope3),
+            totalEmissionIntensity = VALUES(totalEmissionIntensity);
+        """
+    
+    execute_query(db, sql_str, isBatch=True, data_to_insert=data_to_upsert)
+
+    tbl_name="result_emission_intensity"
+    df_cnt = tbl_to_df(db, f"select count(*) as cnt from {tbl_name} where year='{year}'")
+    print(f"Count of {tbl_name} {year}: {df_cnt['cnt'].values[0]}")
+
+    #emission==========================================================================
+    print(f"df_emission.shape {df_emission.shape}, cnt_sector {cnt_sector}")
+    if (df_emission.shape[0] != cnt_sector):
+        print("Inequal length of df_emission and sector_lst")
+        sys.exit()
+    
+    df_emission["year"]=year_lst
+    df_emission["sector_agg"]=sector_agg
+    df_emission["sector_code"]=sector_code
+    df_emission["sector_name"]=sector_name
+
+    data_to_upsert = list(df_emission[['year', 'sector_agg', 'sector_code', 'sector_name', 'emissionScope1', 'emissionScope2', 'emissionScope3', 'totalEmission']].itertuples(index=False, name=None))
+
+    sql_str = """
+        INSERT INTO result_emission (year, sector_agg, sector_code, sector_name, emissionScope1, emissionScope2, emissionScope3, totalEmission)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        ON DUPLICATE KEY UPDATE
+            emissionScope1 = VALUES(emissionScope1),
+            emissionScope2 = VALUES(emissionScope2),
+            emissionScope3 = VALUES(emissionScope3),
+            totalEmission = VALUES(totalEmission);
+        """
+    
+    execute_query(db, sql_str, isBatch=True, data_to_insert=data_to_upsert)
+
+    tbl_name="result_emission"
+    df_cnt = tbl_to_df(db, f"select count(*) as cnt from {tbl_name} where year='{year}'")
+    print(f"Count of {tbl_name} {year}: {df_cnt['cnt'].values[0]}")
+
+    if (0):
+        #agg_sectors==========================================================================
+        q_str = "SELECT * FROM sector_agg ORDER by id"
+        df_sector_agg = tbl_to_df(db, q_str)
+        cnt_sector_agg=df_sector_agg.shape[0]
+        print(f"df_agg_sectors.shape {df_agg_sectors.shape}, cnt_sector_agg {cnt_sector_agg}")
+        if (df_agg_sectors.shape[0] != cnt_sector_agg):
+            print("Inequal length of df_agg_sectors and sector_agg")
+            sys.exit()
+        
+        year_lst_agg=[year]*cnt_sector_agg
+        df_agg_sectors["year"]=year_lst_agg
+
+        df_agg_sectors = df_agg_sectors.reset_index()
+        df_agg_sectors.rename(columns={'index': 'Aggregated sectors'}, inplace=True)
+        print("df_agg_sectors.columns", df_agg_sectors.columns.values)
+
+        data_to_upsert = list(df_agg_sectors[['year', 'Aggregated sectors', 'scope1_Emission', 'scope2_Emission', 'scope3_Emission', 'total_Emission']].itertuples(index=False, name=None))
+
+        #print("data_to_upsert", data_to_upsert)
+
+        sql_str = """
+            INSERT INTO result_sector_agg (year, sector_agg, emissionScope1, emissionScope2, emissionScope3, totalEmission)
+            VALUES (%s, %s, %s, %s, %s, %s)
+            ON DUPLICATE KEY UPDATE
+                emissionScope1 = VALUES(emissionScope1),
+                emissionScope2 = VALUES(emissionScope2),
+                emissionScope3 = VALUES(emissionScope3),
+                totalEmission = VALUES(totalEmission);
+            """
+        
+        execute_query(db, sql_str, isBatch=True, data_to_insert=data_to_upsert)
+
+        tbl_name="result_sector_agg"
+        df_cnt = tbl_to_df(db, f"select count(*) as cnt from {tbl_name} where year='{year}'")
+        print(f"Count of {tbl_name} {year}: {df_cnt['cnt'].values[0]}")
+
+        #agg_sectors_each==========================================================================
+
+        print(f"df_agg_sectors_each.shape {df_agg_sectors_each.shape}, cnt_sector {cnt_sector}")
+        if (df_agg_sectors_each.shape[0] != cnt_sector):
+            print("Inequal length of df_agg_sectors_each and sector_lst")
+            sys.exit()
+        
+        df_agg_sectors_each["year"]=year_lst
+
+        data_to_upsert = list(df_agg_sectors_each[['year', 'Aggregated sectors', 'Sector_Code', 'Sector_Name', 'emissionScope1', 'emissionScope2', 'emissionScope3', 'totalEmission']].itertuples(index=False, name=None))
+
+        sql_str = """
+            INSERT INTO result_sector_each (year, sector_agg, sector_code, sector_name, emissionScope1, emissionScope2, emissionScope3, totalEmission)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            ON DUPLICATE KEY UPDATE
+                emissionScope1 = VALUES(emissionScope1),
+                emissionScope2 = VALUES(emissionScope2),
+                emissionScope3 = VALUES(emissionScope3),
+                totalEmission = VALUES(totalEmission);
+            """
+        
+        execute_query(db, sql_str, isBatch=True, data_to_insert=data_to_upsert)
+
+        tbl_name="result_sector_each"
+        df_cnt = tbl_to_df(db, f"select count(*) as cnt from {tbl_name} where year='{year}'")
+        print(f"Count of {tbl_name} {year}: {df_cnt['cnt'].values[0]}")
+
+
+
+def calc_mat(db, fname_io, year):
     print ("Inside util_app::calc_mat")
-    print ("in_fname", in_fname_io, in_fname_fec, in_fname_conv, in_fname_co2)
-
-    if (in_fname_io !=""): copy_file_todata(in_fname_io)
-    else: in_fname_io="io_ind_2016.csv"
-    if (in_fname_fec !=""): copy_file_todata(in_fname_fec)
-    else: in_fname_fec="final_energy_consumption_bytype.csv"
-    if (in_fname_conv !=""): copy_file_todata(in_fname_conv)
-    else: in_fname_conv="conversion_factor.csv"
-    if (in_fname_co2 !=""): copy_file_todata(in_fname_co2)
-    else: in_fname_co2="direct_CO2_EF.csv"
 
     cwd = os.getcwd()
-    folder_path = f'{cwd}/static/data'
-    folder_path_buf = f'{cwd}/static/buf'
+    folder_path = f'{cwd}/static/data/{year}'
+    folder_path_buf = f'{cwd}/static/buf/{year}'
+
+    if not os.path.exists(folder_path_buf):
+        os.makedirs(folder_path_buf)
+    if not os.path.exists(f"{folder_path_buf}/tmp"):
+        os.makedirs(f"{folder_path_buf}/tmp")
+
     #Original IO table
     #-----------------------------------------------------------------------------------------
     #file_path = 'data/io_ind_2016.xlsx'
-    file_path=f"{folder_path}/{in_fname_io}"
+    file_path=f"{folder_path}/{fname_io}"
+    print("file_path", file_path)
+    if not os.path.exists(file_path):
+        return 0, f"Cannot find {file_path}", pd.DataFrame(), pd.DataFrame()
 
-    #pip install pandas openpyxl
-    #df_io = pd.read_excel(file_path)
-    df_io = pd.read_csv(file_path)
+    df_io = pd.read_csv(file_path, thousands=",")
     #print(df_io.head(5))
+    print("df_io shape", df_io.shape)
 
-    CNT_SECTOR=185
-    sector_codeName=df_io.columns.values[3:CNT_SECTOR+3]
-    #print(sector_codeName.shape, '\n',sector_codeName[:5])
-    X = df_io[sector_codeName].values
-    X_io=X[:CNT_SECTOR,:]
+    q_str = "SELECT sector_agg, sector_code, sector_name FROM sector_lst WHERE sector_label='DET'"
+    df_sector = tbl_to_df(db, q_str)
+    cnt_sector=df_sector.shape[0]
+    sector_code=df_sector["sector_code"].values.tolist()
+    print("cnt_sector", cnt_sector)
+    #print("sector_code", sector_code)
+    CNT_SECTOR=cnt_sector
+
+    X=df_io[sector_code].values
+    #X_io = df_io[df_io['sector_code'].isin(sector_code)].values
+    X_io=X[:cnt_sector,:]
     X_total=X[-1,:]
-    #print(X_io.shape, X_total.shape)
-    #print(X_io[:5,:5]); print(X_total[:5])
+    print("X_io.shape, X_total.shape-2", X_io.shape, X_total.shape)
+    print("X_io-2",X_io[:5,:5]); print("X_total-2",X_total[:5])
+    print("df_io", df_io.head(5))
+    
 
     #Matrix A Coefficient
     #-----------------------------------------------------------------------------------------
@@ -191,38 +356,56 @@ def calc_mat(in_fname_io, in_fname_fec, in_fname_conv, in_fname_co2):
     #print(mat_A[:5,:5])
 
     #Energy use per sector
-    #-----------------------------------------------------------------------------------------
-    #file_path_FEC = 'data/final_energy_consumption_bytype.xlsx'
-    file_path_FEC = f"{folder_path}/{in_fname_fec}"
-    df_fec= pd.read_csv(file_path_FEC)
-    #print(df_fec.columns.values)
-    X_fec = df_fec[["Coal", "Fuel", "Natural gas", "Electricity"]].values
-    ROW_Year=6 #row index for year 2016 inside the file
-    X_fec_yr = X_fec[ROW_Year,:]
-    mat_finEnerCons=get_mat_finEnerCons(mat_A, X_fec_yr)
-    #pd.DataFrame(mat_finEnerCons).to_excel("buf/mat_finEnerCons.xlsx")
+    fec_lst=["Coal", "Fuel", "Natural Gas", "Electricity"]
+    q_str = f"""SELECT year, energy_type, fec_val, 
+    energy_lst.energy_type_code, energy_lst.energy_type_name
+    FROM fec_byyear
+    LEFT JOIN energy_lst ON fec_byyear.energy_type = energy_lst.energy_type_code
+    WHERE year='{year}'
+    """
 
-    #file_path_conv = 'data/conversion_factor.xlsx'
-    file_path_conv = f"{folder_path}/{in_fname_conv}"
-    df_conv= pd.read_csv(file_path_conv)
-    #print(df_conv.columns.values)
-    X_conv = df_conv[["Multiplier Factor to BOE"]].values
-    #print(X_conv, X_conv.shape)
-    COL=[3, 31, 17, 38] #col index for Coal, Fuel, Nat Gas, Electricity
-    X_conv_subset = X_conv[COL]
+    df_fec = tbl_to_df(db, q_str)
+    print("df_fec", df_fec.shape, df_fec.head(5))
+    df_fec_reordered = df_fec.set_index('energy_type_name').reindex(fec_lst)
+    X_fec_subset = df_fec_reordered['fec_val'].values
+    print("X_fec_subset", X_fec_subset.shape, X_fec_subset[:5])
+    #print(df_fec["energy_type_name"].values.tolist())
+    mat_finEnerCons=get_mat_finEnerCons(mat_A, X_fec_subset)
+    pd.DataFrame(mat_finEnerCons, index=fec_lst).to_csv(f"static/buf/{year}/tmp/df_finEnerCons.csv")
+    
+    #sys.exit()
+
+    #Conversion factor==================================================================
+    q_str = "SELECT energy_type, multiplier_factor FROM conversion_factor"
+    df_conv = tbl_to_df(db, q_str)
+    #print("df_conv", df_conv.shape, df_conv.head(5))
+    #print("fec_lst", fec_lst)
+
+    df_conv['energy_type_lower'] = df_conv['energy_type'].str.lower()
+    fec_lst_lower = [item.lower() for item in fec_lst]
+
+    df_reordered = df_conv.set_index('energy_type_lower').reindex(fec_lst_lower)
+    X_conv_subset = df_reordered['multiplier_factor'].values
+    #print("X_conv_subset", X_conv_subset.shape, X_conv_subset[:5])
+
     mat_finCons=get_mat_finCons(mat_finEnerCons, X_conv_subset)
-    #pd.DataFrame(mat_finCons).to_excel("buf/mat_finCons.xlsx")
+    #print("mat_finCons", mat_finCons.shape)
+    pd.DataFrame(mat_finCons).to_csv(f"static/buf/{year}/tmp/mat_finCons.csv")
 
-    #file_path_co2 = 'data/direct_CO2_EF.xlsx'
-    file_path_co2 = f"{folder_path}/{in_fname_co2}"
-    df_co2= pd.read_csv(file_path_co2)
-    #print(df_co2.columns.values)
-    X_co2 = df_co2[["Heat content (HHV)", "Emission Factor"]].values
-    #print(X_co2, X_co2.shape)
-    ROW=[0, 2, 1, 3] #col index for Coal, Fuel, Nat Gas, Electricity
-    X_co2_subset = X_co2[ROW,:]
+    
+
+    #CO2 emission factor=========================================================
+    q_str = "SELECT energy_type, heat_content_hhv, emission_factor, multiplier FROM co2_factor"
+    df_co2 = tbl_to_df(db, q_str)
+
+    df_co2_reordered = df_co2.set_index('energy_type').reindex(fec_lst)
+    X_co2_subset = df_co2_reordered[['heat_content_hhv','emission_factor', 'multiplier']].values
+    print("X_co2_subset-df", X_co2_subset.shape, X_co2_subset[:5])
+
     mat_finConsCO2=get_mat_finConsCO2(mat_finCons, X_co2_subset)
-    #pd.DataFrame(mat_finConsCO2).to_excel("buf/mat_finConsCO2.xlsx")
+    pd.DataFrame(mat_finConsCO2, index=fec_lst).to_csv(f"static/buf/{year}/tmp/df_finConsCO2.csv")
+
+    
 
     total_finConsCO2_inG=np.sum(mat_finConsCO2, axis=0)
     #print(total_finConsCO2_inG[:5])
@@ -284,7 +467,9 @@ def calc_mat(in_fname_io, in_fname_fec, in_fname_conv, in_fname_co2):
     df_emissionIntensity = pd.DataFrame(data=[emissionIntensityScope1, emissionIntensityScope2, emissionIntensityScope3, totalEmissionIntensity]).T
     df_emissionIntensity.columns = ["emissionIntensityScope1", "emissionIntensityScope2", "emissionIntensityScope3", "totalEmissionIntensity"]
 
-    X_domOut = df_io[["7000/Total Domestic Output at Basic Price"]].values
+    col_domOut="7000"
+    #X_domOut = df_io[["7000/Total Domestic Output at Basic Price"]].values
+    X_domOut = df_io[[col_domOut]].values
     X_domOut=X_domOut[:CNT_SECTOR].ravel()
     totalEmission = totalEmissionIntensity * X_domOut
     #print(totalEmissionIntensity.shape, X_domOut.shape)
@@ -299,19 +484,33 @@ def calc_mat(in_fname_io, in_fname_fec, in_fname_conv, in_fname_co2):
     df_emission.columns = ["emissionScope1", "emissionScope2", "emissionScope3", "totalEmission"]
 
 
-    file_path_AGG = f'{folder_path}/aggregated_sectors.csv'
-    #file_path_AGG = in_path_agg
-    df_agg_label= pd.read_csv(file_path_AGG)
-    #print(df_fec.columns.values)
+    df_Sector=df_sector.copy()
+    df_Sector = df_Sector.rename(columns={'sector_agg': 'Aggregated sectors', 'sector_code': 'Sector_Code', 'sector_name': 'Sector_Name'})
 
-    df_agg_sectors=get_io_aggregate(df_io, df_agg_label, totalEmission, scope1_emission_inT, scope2_emission_inT, scope3_emission_inT)
-    #print(df_agg_sectors.head(5))
+    print("df_io before merge", df_io.shape, df_io.head(5))
+    print("df_Sector", df_Sector.shape, df_Sector.head(5))
 
-    df_agg_sectors_each=get_aggregate_each()
+    df_io = pd.merge(df_io, df_Sector[['Aggregated sectors', 'Sector_Code', 'Sector_Name']], on='Sector_Code')
+    #df_io['Sector_CodeName'] = df_io['Sector_Code'].astype(str) + '/' + df_io['Sector_Name'].astype(str)
+    print("df_io after merge", df_io.shape, df_io.head(5))
+    #sys.exit()
+    df_agg_sectors=get_io_aggregate(df_io, df_Sector, totalEmission, scope1_emission_inT, scope2_emission_inT, scope3_emission_inT)
+    print("df_agg_sectors", df_agg_sectors.head(5))
+    df_agg_sectors.to_csv(f"{folder_path_buf}/tmp/df_agg_sectors.csv", index=True)
+    #sys.exit()
 
-    if (1):
+    df_agg_sectors_each=get_aggregate_each(df_io, df_emission, df_Sector)
+
+    if (0):
         print ("Writing dataframe to csv...")
 
+        pd.DataFrame(X_io).to_csv(f"{folder_path_buf}/X_io.csv", index=False)
+        pd.DataFrame(X_total).to_csv(f"{folder_path_buf}/X_total.csv", index=False)
+        pd.DataFrame(X_domOut).to_csv(f"{folder_path_buf}/X_domOut.csv", index=False)
+        pd.DataFrame(totalEmission).to_csv(f"{folder_path_buf}/totalEmission.csv", index=False)
+        pd.DataFrame(scope1_emission_inT).to_csv(f"{folder_path_buf}/scope1_emission_inT.csv", index=False)
+        pd.DataFrame(scope2_emission_inT).to_csv(f"{folder_path_buf}/scope2_emission_inT.csv", index=False)
+        pd.DataFrame(scope3_emission_inT).to_csv(f"{folder_path_buf}/scope3_emission_inT.csv", index=False)
         pd.DataFrame(mat_A).to_csv(f"{folder_path_buf}/mat_A.csv", index=False)
         pd.DataFrame(mat_B).to_csv(f"{folder_path_buf}/mat_B.csv", index=False)
         pd.DataFrame(mat_B_El).to_csv(f"{folder_path_buf}/mat_B_El.csv", index=False)
@@ -328,12 +527,23 @@ def calc_mat(in_fname_io, in_fname_fec, in_fname_conv, in_fname_co2):
         df_emissionIntensity.to_csv(f"{folder_path_buf}/result_emissionIntensity.csv", index=False)
         df_emission.to_csv(f"{folder_path_buf}/result_emission.csv", index=False)
         df_agg_sectors.to_csv(f"{folder_path_buf}/result_agg_sectors.csv", index=True)
-
         df_agg_sectors_each.to_csv(f"{folder_path_buf}/result_agg_sectors_each.csv",index=False)
 
-    return df_agg_sectors, df_agg_sectors_each
+    if (1):
+        print ("Writing dataframe to database...")
+        write_to_db(db, year, df_emissionIntensity, df_emission, df_agg_sectors, df_agg_sectors_each)
+    
+    return 1, "Matrices are successfully computed", df_agg_sectors, df_agg_sectors_each
+
 
 if __name__ == '__main__':
     if (1):
-        fname_io="io_ind_2016.csv"; fname_fec=""; fname_conv=""; fname_co2=""
-        calc_mat(fname_io, fname_fec, fname_conv, fname_co2)
+        EEIO_FILES = ["IO", "FinalEnergyConsumption", "ConversionFactor", "DirectCO2EmmisionFactor"]
+        YEAR=2020
+        fname_io=f"io_ind_{YEAR}.csv"
+
+        app = Flask(__name__)
+        load_dotenv()
+        db = db_init(app)
+        with app.app_context():
+            rv, msg1, df_agg_sectors, df_agg_sectors_each=calc_mat(db, fname_io, YEAR)
