@@ -4,5 +4,5 @@ The util_mat.py can be detached as a stand alone, non-web python application.
 The latest web interface can be accessed via: https://eeio.inovasitiadahenti.com
 
 Python version: 3.10.11
-Database for user login: MySQL
+Database: MySQL
 
