@@ -1,20 +1,46 @@
-    <div class="header">
-      <h1>EEIO-Indonesia</h1>
-      <h3>Indonesia Carbon Footprint Calculator</h3>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+
+<div class="header">
+  <h1 style="margin-bottom: 5px">Greenhouse Gas (GHG) Emission Calculator</h1>
+</div>
+
+<div class="navbar">
+  <!--
+  <a href="{{ url_for('nav_home') }}" class="active">Home</a> -->
+  
+
+  {% if session['loggedin'] %}
+    <!--
+    <a href="{{ url_for('nav_viewData') }}">View Data</a>
+    <a href="{{ url_for('nav_matrix') }}">Matrix Calculation</a>
+    {% if session['userid']=="admin" %}
+      <a href="{{ url_for('nav_inputCategory') }}">Input Sector Category</a>
+    {% endif %}  
+    -->
+  {% else %}
+    <!--
+    <a href="#" title="Please login to enable Matrix Calculation">
+      <span style="color:grey">Matrix Calculation</span></a>
+    -->
+  {% endif %}
+
+  {% if not session['loggedin'] %}
+    <!--<a href="{{ url_for('nav_login', mode='prompt') }}" class="right">Login</a>
+    <a href="#" class="right">
+    <span style="color:rgb(197, 197, 197)">Login</span></a>-->
+  {% else %}
+    <div class="subnav" style="float:right">
+      <button class="subnavbtn">User ({{session['userid']}})<i class="fa fa-caret-down"></i></button>
+      <div class="subnav-content">
+        {% if session['userid']=="admin" %}
+          <a href="{{ url_for('nav_login', mode='verify_user') }}">Manage User</a>
+        {% endif %}
+        <a href="{{ url_for('nav_login', mode='change_password') }}">Change Password</a>
+        <a href="{{ url_for('nav_login', mode='logout') }}">Logout </a>
+      </div>
     </div>
-    
-    <div class="navbar">
-      <a href="{{ url_for('home') }}" class="active">Home</a>
-      <a href="{{ url_for('nav_input') }}">Data for Computation</a>
-      {% if session['loggedin'] %}
-        <a href="{{ url_for('nav_matrix') }}">Matrix</a>
-      {% endif %}
-
-      {% if not session['loggedin'] %}
-        <a href="{{ url_for('nav_login', mode='prompt') }}" class="right">Login</a>
-      {% else %}
-        <a href="{{ url_for('nav_login', mode='logout') }}" class="right">Logout ({{session['userid']}})</a>
-      {% endif %}
+  {% endif %}
+  <!--<a href="{{ url_for('nav_home') }}" class="right">Home</a>-->
 
 
-    </div>
+</div>

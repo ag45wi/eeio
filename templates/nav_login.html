@@ -1,73 +1,187 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<title>EEIO-Indonesia</title>
+<title>EEIO</title>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='style/header.css') }}">
 <link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='style/login.css') }}">
+<link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='style/tbl.css') }}">
 </head>
 <body>
 
 {% include 'header.html' %}
 
-<div class="body_user">
-  <div class="container">
+<div class="body_user"> <!--login.css-->
 
-    {% if mode=="prompt" %}
+  {% if mode=="prompt" %}
+    <div class="container"> <!--login.css-->
     <h2>User Login</h2>
-    <form action="{{ url_for('nav_login',mode='prompt') }}" method="post">
-      {% if message is defined and message %}
-        <div class="alert alert-warning"> <strong> {{ message }} </strong></div>
-        <br>
+      <form action="{{ url_for('nav_login',mode='prompt') }}" method="post">
+        {% if message is defined and message %}
+          {{ message }} 
+          <br>
+          {% if status=="fail"  %}
+            <p><a href="{{url_for('nav_login', mode='prompt')}}"> Login</a>
+            </p>
+          {%endif%}
+        {% else %} 
+          <table style="width: 100%">
+            <tr>
+              <td><label>User ID: </label></td>
+              <td><input type="text" id="userid" name="userid" placeholder="Enter user ID" ></td>
+            </tr>
+              <td ><label>Password: </label></td>
+              <td><input type="password" id="password" name="password" placeholder="Enter password"></td>
+            <tr>
+              <td colspan="2"><button type="submit">Login</button>
+              </td>
+            </tr>
+            <tr>
+              <td colspan="2"><div class="signup">
+                  <span class="signup">Don't have an account?
+                    <a href="{{url_for('nav_login',mode='register')}}"> Register here</a>
+                  </span>
+              </div>
+              </td>
+            </tr>
+          </table>
         {% endif %}
+      </form>
+    </div>
+  {% elif mode=="register" %}
+    <div class="container"> <!--login.css-->
+      <h2>Registration </h2>
+      <form action="{{ url_for('nav_login', mode='register') }}" method="post">
+        {% if message is defined and message %}
+          <div class="alert alert-warning"> {{ message }} </div>
+          <br>
+          {% if status=="fail"  %}
+            <p><a href="{{url_for('nav_login',mode='register')}}"> Register</a>
+            </p>
+          {%endif%}
+        {% else %}
+        <table style="width: 100%">
+          <tr>
+            <td><label>User ID:</label></td>
+            <td><input type="text" id="userid" name="userid" placeholder="Enter user ID" ></td>
+          </tr>
+          <tr>
+            <td><label>Name:</label></td>
+            <td><input type="text" id="name" name="name" placeholder="Enter name" ></td>
+          </tr>
+          <tr>
+            <td><label>Email:</label></td>
+            <td><input type="email" id="email" name="email" placeholder="Enter email, preferably gmail" ></td>
+          </tr>
+          <tr>
+            <td><label>Password:</label></td>
+            <td><input type="password" id="password" name="password" placeholder="Enter password" ></td>
+          <tr>
+            <td colspan="2">
+              <div class="wrap">
+                <button type="submit">Register</button>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td colspan="2">
+                <div class="signup">
+                <span class="signup">Already have an account?
+                  <a href="{{url_for('nav_login', mode='prompt')}}"> Login here</a>
+                </span>
+              </div>
+            </td>
+          </tr>
+        </table>
+        {%endif%}
 
-      <label>User ID: </label>
-      <input type="text" id="userid" name="userid" placeholder="Enter user ID" >
-      <label>Password: </label>
-      <input type="password" id="password" name="password" placeholder="Enter password">
-      <button type="submit">Login</button>
-  
-      <div class="signup">
-          <span class="signup">Don't have an account?
-            <br><a href="{{url_for('nav_login',mode='register')}}"> Register here</a>
-          </span>
-      </div>
-    </form>
+      </form>
+    </div>
+  {% elif mode=="change_password" %}
+    <div class="container"> <!--login.css-->
+      <h2>Password Change</h2>
+      <form action="{{ url_for('nav_login', mode='change_password') }}" method="post">
+        {% if message %}
+          <div class="alert alert-warning"> {{ message }}</div>
+          <br>
+          {% if status=="fail"  %}
+            <p><a href="{{ url_for('nav_login', mode='change_password') }}">Change Password</a>
+            </p>
+          {%endif%}
+        {% else %}
+          <table style="width: 100%">
+            <tr>
+              <td><label>User ID: </label></td>
+              <td style="text-align: left;">{{session['userid']}}</td>
+            <tr>
+              <td><label>Old Password:</label></td>
+              <td><input type="password" id="password_old" name="password_old" placeholder="Enter old password" >
+              </td>
+            <tr>  
+              <td><label>New Password:</label></td>
+              <td><input type="password" id="password_new" name="password_new" placeholder="Enter new password" >
+              </td>
+            <tr> 
+              <td colspan="2"> 
+                <div class="wrap">
+                  <button type="submit">Change Password</button>
+                </div>
+              </td> 
+            </tr>
+          </table>  
+        {% endif %}
+      </form>
+    </div><!--container-->
+  {% endif %}
+</div> <!--div class="body_user"-->  
 
-    {% elif mode=="register" %}
-    <h2>Admin Registration </h2>
-    <form action="{{ url_for('nav_login', mode='register') }}" method="post">
-      {% if message is defined and message %}
-        <div class="alert alert-warning"> <strong> {{ message }} </strong></div>
-      {% endif %}
+  {% if mode=="verify_user" or mode=="delete_user" %}
+    {% if message %}
+      <div style="color:rgb(83, 212, 216); text-align: center;">{{ message }}</div>
       <br>
-      <label>User ID:</label>
-        <input type="text" id="userid" name="userid" placeholder="Enter user ID" >
-          <label>Name:</label>
-      <input type="text" id="name" name="name" placeholder="Enter name" >
-          <label>Email:</label>
-      <input type="email" id="email" name="email" placeholder="Enter email" >
-          <label>Password:</label>
-      <input type="password" id="password" name="password" placeholder="Enter password" >
-          <div class="wrap">
-            <button type="submit">Register</button>
-          </div>
-      <div class="signup">
-          <span class="signup">Already have an account?
-            <br><a href="{{url_for('nav_login', mode='prompt')}}"> Login here</a>
-          </span>
-        </div>
-    </form>
-  
     {% endif %}
-  </div>
-</div>
+    <div class="tbl" >
+      <table style="margin-left: auto; margin-right: auto;">
+          <!-- header -->
+          {% for row in tbl_user %}
+              {% if loop.first %}
+                  <tr>
+                  <th>#</th>
+                  {% for col in row %}
+                        <th>{{ col }}</th>
+                  {% endfor %} 
+                  <th>Delete</th>
+                  </tr>
+              {% endif %}
+          {% endfor %}
+          <!-- rows -->
+          {% for row in tbl_user %}
+              <tr>
+                  <td>{{loop.index}}</td>
+                  {% for col, val in row.items() %}
+                    {% if col=='request_status' and val != "verified" %} 
+                      <td>{{ val }} [<a href="{{ url_for('nav_login', mode='verify_user', userid=row['userid']) }}">Verify</a>]</td>
+                    {% else %}
+                      <td>{{ val }} </td>
+                    {% endif %}
+            
+                  {% endfor %}      
+                  {% if True %}  
+                    <td>
+                      <a href="{{ url_for('nav_login', mode='delete_user', userid=row['userid']) }}">Delete</a>                                      
+                    </td>
+                  {% endif %}
+              </tr>
+          {% endfor %}
 
-<div class="footer">
-  <h3>Footer</h3>
-</div>
+      </table>
+    </div>
+
+  {% endif %}
+<br>
+{% include 'footer.html' %}
 
 </body>
 </html>

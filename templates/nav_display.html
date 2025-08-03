@@ -6,6 +6,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='style/header.css') }}">
+<link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='style/form.css') }}">
+<link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='style/chart.css') }}">
+
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 
 </head>
 <body>
@@ -15,36 +19,517 @@
 
 <div class="row">
   <div class="side">
-    <h3>Kategori Sektor</h3>
+    <h3 style="margin: 5px 2px 10px 2px; text-align: left">Select Year and Sectors</h3>
 
-    <form method="POST" action="{{ url_for('submit_opt_agg') }}">
-      <label for="dropdown">Select category of IO sectors:</label>
-      <select name="dropdown" id="dropdown">
-        {% for item in data_list %}
-          {% if item==selected_opt_agg %}
-            <option value="{{ item }}" selected>{{ item }}</option>
-          {% else %}
-            <option value="{{ item }}">{{ item }}</option>
-          {% endif %}
-        {% endfor %}
-      </select>
-      <button type="submit">Submit</button>
-    </form>
+    <div class="selection-controls">
+        <div class="control-group">
+            <label for="year-select">Select Year:</label>
+            <select id="year-select">
+            {% for key, value in dct_year.items() %}
+                {% if loop.first %}
+                <option value="{{ key }}" selected>{{ key }}</option>
+                {% else %}
+                <option value="{{ key }}">{{ key }}</option>
+                {% endif %}
+            {% endfor %}
+            </select>
+        </div>
+
+        <div class="control-group">
+            <label for="sector-aggregate-select">Select Sector Aggregate:</label>
+            <select id="sector-aggregate-select">
+                {% for key, value in dct_agg.items() %}
+                    {% if loop.last %}
+                        <option value="{{ key }}" selected>{{key}} - {{ value }}</option>
+                    {% else %}
+                        <option value="{{ key }}">{{key}} - {{ value }}</option>
+                    {% endif %}
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="control-group">
+            <label for="sector-select">Select Sector <span style="font-size: 14px; font-style: italic;color: rgb(4, 20, 253);">(Ctrl + Click for multiple)</span></label>
+            <select name="sector-select" id="sector-select" multiple size="14">
+                <!-- Options will be dynamically populated by JS -->
+                <!--
+                {% for key, value in dct_sector.items() %}
+                    {% if loop.first %}
+                        <option value="{{ key }}" selected>{{key}} - {{ value }}</option>
+                    {% else %}
+                        <option value="{{ key }}">{{key}} - {{ value }}</option>
+                    {% endif %}
+                {% endfor %}
+                -->
+            </select>
+        </div>
+        <div class="control-group select-all-container">
+            <input type="checkbox" id="select-all-checkbox">
+            <label for="select-all-checkbox">Select All</label>
+        </div>
+        <!--
+        <button id="update-chart-button">Update Chart</button>-->
+    </div>
+
+
+
 
   </div>
   <div class="main">
-    <h3>Emisi Per Sektor</h3>
-    <!--
-    <h5>Selected option: {{selected_opt_agg}}</h5>
-    -->
-    <img src="{{ url_for('plot_png', in_agg=selected_opt_agg) }}" alt="Stacked Bar Chart">
-    
+    <h3 style="margin: 5px 2px 10px 2px; padding-bottom: 10px">Emission Report</h3>
+
+    <!-- Placeholder for selected sectors -->
+    <div id="selectedDisplayInfo"></div>
+
+    <div class="chart-container">
+        <div id="chartDiv"></div>
+    </div>
+
+    <div class="download-link-container">
+        <!--<a id="downloadLink" href="#" download>Download FEC</a>
+        <a id="downloadLink2" href="#" download>Download Emission Intensity</a>
+        <a id="downloadLink3" href="#" download>Download Emission</a>
+        -->
+        <a id="downloadLink_FEC" class="download-link" href="#" onclick="handleDownloadClick(event, 'FEC')">Download FEC</a>
+        <a id="downloadLink_emissionIntensity" class="download-link" href="#" onclick="handleDownloadClick(event, 'emissionIntensity')">Download Emission Intensity</a>
+        <a id="downloadLink_emission" class="download-link" href="#" onclick="handleDownloadClick(event, 'emission')">Download Emission</a>
+    </div>
+
   </div>
 </div>
 
-<div class="footer">
-  <h3>Footer</h3>
-</div>
+{% include 'footer.html' %}
 
 </body>
 </html>
+
+
+<script>
+    const dct_sector = {{ dct_sector|tojson }};
+    const dct_agg = {{ dct_agg|tojson }};
+    const dct_year = {{ dct_year|tojson }};
+    const dct_sector_aggregates = {{ dct_sector_aggregates | tojson }};
+    console.log("dct_sector_json", dct_sector);
+    console.log("dct_agg_json", dct_agg);
+    //console.log("dct_sector_aggregates_json", dct_sector_aggregates);
+
+    /**
+    * Updates the display of selected sectors and year with truncation logic.
+    * @param {string[]} sectors - An array of selected sector codes.
+    * @param {string} year - The selected year. -> {string[]} years
+    */
+    function updateSelectedDisplayInfo(sectors, years) {
+        const displayDiv = document.getElementById('selectedDisplayInfo');
+        const maxDisplay = 10;
+        const totalItems = sectors.length;
+
+        console.log("inside updateSelectedDisplayInfo"); console.log("sectors", sectors); console.log("years", years);
+
+        function formatYears(years) {
+            if (!years || years.length === 0) return ''; // Handle empty case
+            if (years.length === 1) return `${years[0]}`; // Single year (e.g., [2016] → "2016")
+            if (years.length === 2) return `${years[0]}-${years[1]}`; // Two years (e.g., [2016, 2020] → "2016-2020")
+            return `${years[0]}-${years[years.length - 1]}`; // More than two (e.g., [2016, 2020, 2024] → "2016-2024")
+            }
+
+        let sectorDisplayParts = [];
+
+        if (totalItems === 0) {
+            sectorDisplayParts = ['No sectors selected.'];
+        } else if (totalItems <= maxDisplay) {
+            sectorDisplayParts = sectors.map(sectorCode => {
+                const sectorName = dct_sector[sectorCode] || sectorCode;
+                return `${sectorCode}/${sectorName}`;
+            });
+        } else {
+            for (let i = 0; i < 5; i++) {
+                const sectorCode = sectors[i];
+                const sectorName = dct_sector[sectorCode] || sectorCode;
+                sectorDisplayParts.push(`${sectorCode}/${sectorName}`);
+            }
+            sectorDisplayParts.push('...');
+            for (let i = totalItems - 5; i < totalItems; i++) {
+                const sectorCode = sectors[i];
+                const sectorName = dct_sector[sectorCode] || sectorCode;
+                sectorDisplayParts.push(`${sectorCode}/${sectorName}`);
+            }
+        }
+
+        const formattedSectors = sectorDisplayParts.join('; ');
+        const fmt_year=formatYears(years);
+        displayDiv.innerHTML = `
+            <p style="margin-bottom: 5px; padding-bottom: 5px"><span class="selected-year-display"><b>Selected Year:</b> ${ fmt_year }</span></p>
+            <span class="selected-items-list"><b>Selected Sectors (${totalItems}):</b> ${formattedSectors}</span>
+        `;
+    }
+
+    /**
+        * Handles the download click event using a POST request.
+        * @param {Event} event - The click event.
+        * @param {string} dataType - The type of data to download ('FEC' or 'emission').
+        */
+    async function handleDownloadClick(event, dataType) {
+        console.log("handleDownloadClick", dataType);
+
+        event.preventDefault(); // Prevent the default link behavior
+
+        const { sectors, years } = getCurrentSelections();
+        if (sectors.length === 0) {
+            alert("Please select at least one sector to download.");
+            return;
+        }
+        
+        //const downloadLink = document.getElementById(`downloadLink_${dataType.toLowerCase()}`);
+        const downloadLink = document.getElementById(`downloadLink_${dataType}`);
+        //console.log("Got Here 2");
+        try {
+            // Disable the link and show a loading state
+            downloadLink.textContent = "Generating...";
+            downloadLink.style.pointerEvents = 'none';
+            //console.log("Got Here 3");
+            const response = await fetch('/download_data', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                // Send the dataType along with the sectors and year
+                body: JSON.stringify({ sectors: sectors, years: years, dataType: dataType })
+            });
+            //console.log("Got Here 4");
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status} - ${errorData.error || 'Unknown error'}`);
+            }
+            
+            const data = await response.json(); // Expecting { "download_url": "/get_download/your_filename.csv" }
+            if (data.download_url) {
+                // Option 1: Redirect the browser (simplest)
+                window.location.href = data.download_url;
+
+                // Option 2: Create a hidden link and click it (allows for more control,
+                // like not leaving the current page, though a full page download often
+                // doesn't cause a page leave anyway).
+                // const link = document.createElement('a');
+                // link.href = data.download_url;
+                // link.download = 'dummy.csv'; // Optional: Suggest a filename to the browser
+                // document.body.appendChild(link);
+                // link.click();
+                // document.body.removeChild(link);
+            } else {
+                throw new Error("Download URL not received from server.");
+            }
+
+            // Get the file content as a Blob
+            //const blob = await response.blob();
+
+            // Create a temporary URL for the Blob
+            //const url = window.URL.createObjectURL(blob);
+
+            // Create a temporary link to trigger the download
+            //const tempLink = document.createElement('a');
+            //tempLink.href = url;
+
+            //let sectorTag = '';
+            //if (sectors.length > 0) {
+            //    sectorTag = `sector_cnt${sectors.length}_code${sectors[0]}_${sectors[sectors.length - 1]}`;
+            //} else {
+            //    sectorTag = 'no_sectors_selected';
+            //}
+
+            // Construct a dynamic filename based on the data type and year
+            //const dataTypeName = dataType.charAt(0).toUpperCase() + dataType.slice(1);
+            //console.log("dataTypeName", dataTypeName);
+
+            //tempLink.setAttribute('download', `report_${dataTypeName}_${year}_${sectorTag}.csv`);
+            
+            //document.body.appendChild(tempLink);
+            //tempLink.click(); // Programmatically click the link
+            //tempLink.remove(); // Clean up the temporary link
+
+            // Revoke the temporary URL to free up memory
+            //window.URL.revokeObjectURL(url);
+
+        } catch (error) {
+            console.error("Error downloading file:", error);
+            alert("Failed to download file. Please try again.");
+        } finally {
+            // Restore the link state
+            downloadLink.textContent = `Download ${dataType} Data`;
+            downloadLink.style.pointerEvents = 'auto';
+        }
+    }
+
+    /**
+    * Updates the download link's href and text.
+    * @param {string[]} sectors - An array of selected sectors.
+    * @param {string[]} years - The selected years.
+    */
+    function updateDownloadLink(sectors, years) {
+        const downloadLink = document.getElementById('downloadLink');
+        const downloadLink2 = document.getElementById('downloadLink2');
+        const downloadLink3 = document.getElementById('downloadLink3');
+        const sectorsParam = sectors.join(',');
+
+        if (sectorsParam === '') {
+            downloadLink.style.display = 'none';
+            downloadLink2.style.display = 'none';
+            downloadLink3.style.display = 'none';
+            return;
+        }
+
+        // Construct the URL for the download endpoint
+        const downloadUrl = `/download_data/${sectorsParam}/${years}/FEC`;
+        downloadLink.href = downloadUrl;
+        downloadLink.textContent = `Download FEC`;
+        //downloadLink.style.display = 'inline-block';
+        downloadLink.style.display = 'inline';
+
+        const downloadUrl2 = `/download_data/${sectorsParam}/${years}/emissionIntensity`;
+        downloadLink2.href = downloadUrl2;
+        downloadLink2.textContent = `Download Emission Intensity`;
+        downloadLink2.style.display = 'inline';
+
+        const downloadUrl3 = `/download_data/${sectorsParam}/${years}/emission`;
+        downloadLink3.href = downloadUrl3;
+        downloadLink3.textContent = `Download Emission Intensity`;
+        downloadLink3.style.display = 'inline';
+    }
+
+    /**
+        * Fetches chart data from the Flask API and renders the Plotly chart.
+        * @param {string[]} sectors - An array of selected sectors.
+        * @param {string[]} years - The selected year.
+        */
+    async function fetchAndRenderChart(sectors, years) {
+        try {
+            // Display a loading message while fetching data
+            document.getElementById('chartDiv').innerHTML = '<p style="text-align: center; color: #555;">Loading chart data...</p>';
+
+            console.log("fetch::sectors", sectors);
+            console.log("fetch::years", years);
+
+            // Update the selected display info immediately
+            updateSelectedDisplayInfo(sectors, years);
+
+            // Update the download link text and visibility for both links
+            const downloadLinkFEC = document.getElementById('downloadLink_FEC');
+            const downloadLinkEmission = document.getElementById('downloadLink_emission');
+            const downloadLinkEmissionIntensity = document.getElementById('downloadLink_emissionIntensity');
+            downloadLinkFEC.textContent = `Download FEC Data`;
+            downloadLinkEmission.textContent = `Download Emission Data`;
+            downloadLinkEmissionIntensity.textContent = `Download Emission Intensity Data`;
+
+            if (sectors.length === 0) {
+                downloadLinkFEC.style.display = 'none';
+                downloadLinkEmission.style.display = 'none';
+                downloadLinkEmissionIntensity.style.display = 'none';
+            } else {
+                downloadLinkFEC.style.display = 'inline-block';
+                downloadLinkEmission.style.display = 'inline-block';
+                downloadLinkEmissionIntensity.style.display = 'inline-block';
+            }
+
+            // Join the array of sectors into a comma-separated string for the URL
+            const sectorsParam = sectors.join(',');
+            if (sectorsParam === '') {
+                document.getElementById('chartDiv').innerHTML = '<p style="text-align: center; color: #555;">Please select at least one sector.</p>';
+                return;
+            }
+
+            const yearsParam = years.join(',');
+            // Construct the URL with both sectors and year as path parameters
+            const apiUrl = `/get_chart_data/${sectorsParam}/${yearsParam}`;
+
+            // Fetch the JSON data from your Flask API endpoint
+            const response = await fetch(apiUrl);
+
+            // Check if the request was successful
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            // Parse the JSON response
+            const plotlyData = await response.json();
+
+            // Clear the loading message
+            document.getElementById('chartDiv').innerHTML = '';
+
+            // Render the Plotly chart into the 'chartDiv'
+            Plotly.newPlot('chartDiv', plotlyData.data, plotlyData.layout);
+
+        } catch (error) {
+            // Log and display any errors during fetch or rendering
+            console.error("Error fetching or rendering chart:", error);
+            document.getElementById('chartDiv').innerHTML = '<p style="color: red; text-align: center;">Failed to load chart. Please try again.</p>';
+            document.getElementById('selectedDisplayInfo').innerHTML = '<span class="total-items-count">Error</span><br><span class="selected-items-list" style="color: red;">Failed to load data.</span>';
+        }
+    }
+
+    // Get references to the elements
+    const selectAllCheckbox = document.getElementById('select-all-checkbox');
+    const sectorDropdown = document.getElementById('sector-select');
+    const yearDropdown = document.getElementById('year-select'); // Get year dropdown
+    const sectorAggregateDropdown = document.getElementById('sector-aggregate-select');
+    //const updateButton = document.getElementById('update-chart-button');
+
+    // --- Helper function to get current selections ---
+    function getCurrentSelections() {
+        const selectedSectors = Array.from(sectorDropdown.options)
+                                        .filter(option => option.selected)
+                                        .map(option => option.value);
+        const selectedYears = dct_year[yearDropdown.value]; // Get selected year as a string from the dictionaryyearDropdown.value; // Get selected year
+        return { sectors: selectedSectors, years: selectedYears };
+    }
+
+    /**
+    * Populates the sector dropdown based on the selected aggregate.
+    * Automatically selects all options for the chosen aggregate.
+    * @param {string} aggregateCode - The code of the selected aggregate (e.g., "01", "ALL").
+    */
+    function populateSectorDropdown(aggregateCode) {
+        // Clear existing options
+        sectorDropdown.innerHTML = '';
+
+        const aggregateInfo = dct_sector_aggregates[aggregateCode];
+        if (!aggregateInfo) { // Check for aggregateInfo
+            console.error("Invalid aggregate code:", aggregateCode);
+            return;
+        }
+
+        const sectorsForAggregate = aggregateInfo;
+
+        // Add new options and select them
+        sectorsForAggregate.forEach(sectorCode => {
+            const option = document.createElement('option');
+            option.value = sectorCode;
+            option.textContent = dct_sector[sectorCode] || sectorCode;
+            option.selected = true; // Automatically select all
+            sectorDropdown.appendChild(option);
+        });
+
+        // Update "Select All" checkbox state
+        selectAllCheckbox.checked = true; // Since we auto-select all for the aggregate
+    }
+
+    // --- Event Listeners ---
+
+    // 1. Sector Aggregate Dropdown change listener
+    sectorAggregateDropdown.addEventListener('change', function() {
+        const selectedAggregateCode = this.value;
+        populateSectorDropdown(selectedAggregateCode); // First, update the sector dropdown
+        const { sectors, years } = getCurrentSelections();
+        fetchAndRenderChart(sectors, years); // Then, trigger chart update
+    });
+
+    // 2. "Select All" checkbox change listener
+    selectAllCheckbox.addEventListener('change', function() {
+        for (let i = 0; i < sectorDropdown.options.length; i++) {
+            sectorDropdown.options[i].selected = this.checked;
+        }
+        const { sectors, years } = getCurrentSelections();
+
+        //console.log("sectors", sectors);
+        //console.log("years", years);
+        fetchAndRenderChart(sectors, years); // Pass both to update
+    });
+
+    // 2. Sector Dropdown change listener (for manual deselection)
+    sectorDropdown.addEventListener('change', function() {
+        let allSelected = true;
+        for (let i = 0; i < sectorDropdown.options.length; i++) {
+            if (!sectorDropdown.options[i].selected) {
+                allSelected = false;
+                break;
+            }
+        }
+        selectAllCheckbox.checked = allSelected;
+
+        // Update display immediately for manual changes
+        const { sectors, years } = getCurrentSelections();
+        //updateSelectedDisplayInfo(sectors, year);
+
+        // Call fetchAndRenderChart to update the chart immediately on individual sector changes
+        fetchAndRenderChart(sectors, years);
+    });
+
+    // 4. Year Dropdown change listener
+    yearDropdown.addEventListener('change', function() {
+        // When year changes, trigger a chart update
+        const { sectors, years } = getCurrentSelections();
+        fetchAndRenderChart(sectors, years);
+    });
+
+    // 4. "Update Chart" button click listener
+    //updateButton.addEventListener('click', () => {
+    //    const { sectors, year } = getCurrentSelections();
+    //    fetchAndRenderChart(sectors, year); // Call function to update chart
+    //});
+
+    // --- Initial Load Logic ---
+    window.onload = function() {
+
+        // Set a default aggregate selection (e.g., "ALL" or "01")
+        const keys = Object.keys(dct_agg);
+        console.log("keys", keys);
+        //const firstKey = keys[0];
+        //const minInt = Math.min(...keys.map(key => parseInt(key, 10)));
+
+        //https://gemini.google.com/app/d715df2ceff8583c
+        let smallestKey = null
+        try {
+            if (keys.length === 0) {
+                console.warn("The keys array is empty. Cannot determine smallest key.");
+                // smallestKeyMethod2 = null;
+            } else {
+                const minInt = keys.reduce((min, key) => {
+                    const currentInt = parseInt(key, 10);
+                    if (isNaN(currentInt)) {
+                        return min
+                    }
+                    return currentInt < min ? currentInt : min;
+                }, Infinity); // Initialize with Infinity to ensure the first valid number becomes the minimum
+
+                smallestKey = String(minInt).padStart(2, '0');
+                console.log(`Method 2 (reduce): The smallest string number is: '${smallestKey}'`);
+            }
+        } catch (error) {
+            console.error(`Error in Method 2: ${error.message}`);
+        }
+
+        const firstKey = smallestKey;
+        console.log("firstKey", firstKey);
+        sectorAggregateDropdown.value = firstKey; // Or "01" if you prefer the first aggregate
+        console.log("sectorAggregateDropdown.value", sectorAggregateDropdown.value);
+
+        // Populate the sector dropdown based on the initial aggregate selection
+        populateSectorDropdown(sectorAggregateDropdown.value);
+
+        // Initialize "Select All" checkbox state based on initial selections
+        let initialAllSelected = true;
+        for (let i = 0; i < sectorDropdown.options.length; i++) {
+            if (!sectorDropdown.options[i].selected) {
+                initialAllSelected = false;
+                break;
+            }
+        }
+        selectAllCheckbox.checked = initialAllSelected;
+        console.log("initialAllSelected", initialAllSelected);
+
+        // Fetch and render the initial chart
+        const { sectors, years } = getCurrentSelections();
+        fetchAndRenderChart(sectors, years);
+
+        // Trigger the initial chart load by simulating a button click.
+        // This ensures the chart and display are shown on first page load
+        // with the default selected options (including if "Select All" was initially checked).
+        //updateButton.click();
+
+        // Add a resize listener for responsive chart behavior
+        window.addEventListener('resize', function() {
+            Plotly.relayout('chartDiv', {
+                'autosize': true,
+                'height': window.innerWidth <= 768 ? 800 : 500
+            });
+        });
+    };
+    
+</script>
